@@ -44,6 +44,7 @@ cd ai-benchmark
 Run the script and enter the API URL, model ID and benchmark type. The URL may end in `/v1` or `/v1/chat/completions`; the runner normalizes both.
 
 ```bash
+chmod +x ./benchmark/run.sh
 ./benchmark/run.sh
 ```
 
@@ -69,6 +70,7 @@ Performance preflight checks the API and local Python runtime. Task preflight ad
 ### 4. Run the benchmark
 
 ```bash
+chmod +x ./benchmark/run.sh
 ./benchmark/run.sh
 ```
 
