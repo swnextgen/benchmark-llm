@@ -1,0 +1,3 @@
+mini-swe-agent==2.4.5
+harbor==0.20.0
+swebench==4.1.0

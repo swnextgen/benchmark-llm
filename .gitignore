@@ -1,0 +1,7 @@
+config.env
+.env
+benchmark/.venv/
+benchmark/.state/
+benchmark-results/
+__pycache__/
+*.pyc
