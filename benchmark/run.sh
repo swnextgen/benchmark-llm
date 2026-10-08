@@ -17,28 +17,30 @@ if [[ "$MODE" != run && "$MODE" != --preflight ]]; then
   exit 2
 fi
 
-API_INPUT="${OPENAI_BASE_URL:-}"
-MODEL_INPUT="${OPENAI_MODEL:-}"
-BENCHMARK_TYPE="${BENCHMARK_TYPE:-performance}"
+RAM_GIB=$(awk '/MemTotal:/ {printf "%d", ($2 + 1048575) / 1048576}' /proc/meminfo 2>/dev/null || echo 0)
+SUGGESTED_PROFILE=advanced
+(( RAM_GIB > 0 && RAM_GIB <= 32 )) && SUGGESTED_PROFILE=edge
+BENCHMARK_PROFILE="${BENCHMARK_PROFILE:-$SUGGESTED_PROFILE}"
+BENCHMARK_TYPE="${BENCHMARK_TYPE:-both}"
 SWE_TASK_COUNT="${SWE_TASK_COUNT:-10}"
 TERMINAL_TASK_COUNT="${TERMINAL_TASK_COUNT:-10}"
 REASONING_TASK_COUNT="${REASONING_TASK_COUNT:-5}"
+MODEL_DISPLAY_INPUT="${OPENAI_MODEL_DISPLAY_NAME:-}"
 if [[ -t 0 ]]; then
-  read -r -p "OpenAI API URL (/v1 or /v1/chat/completions)${API_INPUT:+ [$API_INPUT]}: " answer
-  API_INPUT="${answer:-$API_INPUT}"
-  read -r -p "Model ID${MODEL_INPUT:+ [$MODEL_INPUT]}: " answer
-  MODEL_INPUT="${answer:-$MODEL_INPUT}"
+  printf 'Benchmark profile (detected %s GiB RAM; suggested %s):\n  1. Edge Device Benchmark\n  2. Advanced Systems Benchmark\n' "$RAM_GIB" "$SUGGESTED_PROFILE"
+  read -r -p "Select [$BENCHMARK_PROFILE]: " answer
+  BENCHMARK_PROFILE="${answer:-$BENCHMARK_PROFILE}"
   if [[ "$MODE" == run ]]; then
-    printf 'Benchmark type:\n  1. performance\n  2. task\n  3. both\n'
+    printf 'Benchmark content:\n  1. Performance\n  2. Capability\n  3. Complete (performance + capability)\n'
     read -r -p "Select [$BENCHMARK_TYPE]: " answer
     BENCHMARK_TYPE="${answer:-$BENCHMARK_TYPE}"
     case "${BENCHMARK_TYPE,,}" in
       performance|p|1) BENCHMARK_TYPE=performance ;;
-      tasks|task|t|2) BENCHMARK_TYPE=tasks ;;
-      both|b|3) BENCHMARK_TYPE=both ;;
-      *) echo "Benchmark type must be performance, tasks or both." >&2; exit 2 ;;
+      tasks|task|capability|c|t|2) BENCHMARK_TYPE=tasks ;;
+      both|complete|b|3) BENCHMARK_TYPE=both ;;
+      *) echo "Benchmark content must be performance, capability or complete." >&2; exit 2 ;;
     esac
-    if [[ "$BENCHMARK_TYPE" != performance ]]; then
+    if [[ "${BENCHMARK_PROFILE,,}" =~ ^(advanced|dgx|high|2)$ && "$BENCHMARK_TYPE" != performance ]]; then
       read -r -p "SWE-bench task count [${SWE_TASK_COUNT}, max 10]: " answer
       SWE_TASK_COUNT="${answer:-$SWE_TASK_COUNT}"
       read -r -p "Terminal-Bench task count [${TERMINAL_TASK_COUNT}, max 10]: " answer
@@ -48,12 +50,66 @@ if [[ -t 0 ]]; then
     fi
   fi
 fi
+case "${BENCHMARK_PROFILE,,}" in
+  edge|local|low|1) BENCHMARK_PROFILE=edge ;;
+  advanced|dgx|high|2) BENCHMARK_PROFILE=advanced ;;
+  *) echo "BENCHMARK_PROFILE must be edge or advanced." >&2; exit 2 ;;
+esac
 case "${BENCHMARK_TYPE,,}" in
   performance|p|1) BENCHMARK_TYPE=performance ;;
-  tasks|task|t|2) BENCHMARK_TYPE=tasks ;;
-  both|b|3) BENCHMARK_TYPE=both ;;
-  *) echo "BENCHMARK_TYPE must be performance, tasks or both." >&2; exit 2 ;;
+  tasks|task|capability|c|2) BENCHMARK_TYPE=tasks ;;
+  both|complete|b|3) BENCHMARK_TYPE=both ;;
+  *) echo "BENCHMARK_TYPE must be performance, capability or complete." >&2; exit 2 ;;
 esac
+
+if [[ "$BENCHMARK_PROFILE" == edge ]]; then
+  EDGE_API_INPUT="${EDGE_BASE_URL:-${OPENAI_BASE_URL:-}}"
+  EDGE_MODEL_ID="${EDGE_MODEL:-${OPENAI_MODEL:-}}"
+  API_KEY="${OPENAI_API_KEY:-dummy}"
+  if [[ -t 0 ]]; then
+    read -r -p "OpenAI API URL (/v1 or /v1/chat/completions)${EDGE_API_INPUT:+ [$EDGE_API_INPUT]}: " answer
+    EDGE_API_INPUT="${answer:-$EDGE_API_INPUT}"
+    read -r -p "Model ID${EDGE_MODEL_ID:+ [$EDGE_MODEL_ID]}: " answer
+    EDGE_MODEL_ID="${answer:-$EDGE_MODEL_ID}"
+    if [[ "$MODE" == run ]]; then
+      EDGE_MODEL_NAME="${MODEL_DISPLAY_INPUT:-${EDGE_MODEL_ID##*/}}"
+      read -r -p "Display model name [$EDGE_MODEL_NAME]: " answer
+      EDGE_MODEL_NAME="${answer:-$EDGE_MODEL_NAME}"
+    fi
+  fi
+  EDGE_MODEL_NAME="${EDGE_MODEL_NAME:-${MODEL_DISPLAY_INPUT:-${EDGE_MODEL_ID##*/}}}"
+  [[ -n "$EDGE_API_INPUT" && -n "$EDGE_MODEL_ID" ]] || { echo "Endpoint and model are required. Set EDGE_BASE_URL and EDGE_MODEL for non-interactive runs." >&2; exit 2; }
+  EDGE_API_BASE="${EDGE_API_INPUT%/}"
+  EDGE_API_BASE="${EDGE_API_BASE%/chat/completions}"
+  python3 -m py_compile "$BENCH_DIR/edge_benchmark.py"
+  python3 "$BENCH_DIR/edge_benchmark.py" --self-test
+  python3 "$BENCH_DIR/edge_benchmark.py" --preflight --runner-mode openai \
+    --api-base-url "$EDGE_API_BASE" --api-key "$API_KEY" --model "$EDGE_MODEL_ID"
+  if [[ "$MODE" == --preflight ]]; then
+    echo "Edge preflight passed: $EDGE_MODEL_ID at $EDGE_API_BASE"
+    exit 0
+  fi
+  EDGE_RUN_DIR="$ROOT/benchmark-results/$(date -u +%Y%m%dT%H%M%SZ)"
+  mkdir -p "$EDGE_RUN_DIR"
+  edge_args=(--model "$EDGE_MODEL_ID" --display-name "$EDGE_MODEL_NAME" --benchmark-type "$BENCHMARK_TYPE" --runner-mode openai --api-base-url "$EDGE_API_BASE" --api-key "$API_KEY" --runtime-name "${EDGE_RUNTIME_NAME:-llama.cpp}" --result-dir "$EDGE_RUN_DIR" -t "${EDGE_THREADS:-8}" -c "${EDGE_CONTEXT_TOKENS:-32768}")
+  echo "Running Edge Device Benchmark for $EDGE_MODEL_NAME ($BENCHMARK_TYPE); results: $EDGE_RUN_DIR"
+  exec python3 "$BENCH_DIR/edge_benchmark.py" "${edge_args[@]}"
+fi
+
+API_INPUT="${OPENAI_BASE_URL:-}"
+MODEL_INPUT="${OPENAI_MODEL:-}"
+if [[ -t 0 ]]; then
+  read -r -p "OpenAI API URL (/v1 or /v1/chat/completions)${API_INPUT:+ [$API_INPUT]}: " answer
+  API_INPUT="${answer:-$API_INPUT}"
+  read -r -p "Model ID${MODEL_INPUT:+ [$MODEL_INPUT]}: " answer
+  MODEL_INPUT="${answer:-$MODEL_INPUT}"
+  if [[ "$MODE" == run ]]; then
+    MODEL_DISPLAY_NAME="${MODEL_DISPLAY_INPUT:-${MODEL_INPUT##*/}}"
+    read -r -p "Display model name [$MODEL_DISPLAY_NAME]: " answer
+    MODEL_DISPLAY_NAME="${answer:-$MODEL_DISPLAY_NAME}"
+  fi
+fi
+MODEL_DISPLAY_NAME="${MODEL_DISPLAY_NAME:-${MODEL_DISPLAY_INPUT:-${MODEL_INPUT##*/}}}"
 if [[ "$BENCHMARK_TYPE" == performance ]]; then
   SWE_TASK_COUNT=0
   TERMINAL_TASK_COUNT=0
@@ -81,13 +137,13 @@ API_BASE="${API_INPUT%/}"
 API_BASE="${API_BASE%/chat/completions}"
 API_KEY="${OPENAI_API_KEY:-dummy}"
 MODEL_ID="$MODEL_INPUT"
-MODEL_NAME="${MODEL_ID##*/}"
-RESULT_BASENAME="${MODEL_NAME//\//-}"
-RESULT_BASENAME="${RESULT_BASENAME// /-}"
+MODEL_NAME="$MODEL_DISPLAY_NAME"
+RESULT_BASENAME="${MODEL_NAME//[^[:alnum:]._-]/-}"
+[[ -n "$RESULT_BASENAME" ]] || RESULT_BASENAME=model
 MODEL_MAX_INPUT_TOKENS="${OPENAI_MODEL_MAX_INPUT_TOKENS:-131072}"
 MODEL_CONTEXT_TOKENS="$MODEL_MAX_INPUT_TOKENS"
 MODEL_CONTEXT_SOURCE=$([[ -n "${OPENAI_MODEL_MAX_INPUT_TOKENS:-}" ]] && echo configured || echo fallback)
-MODEL_MAX_OUTPUT_TOKENS="${OPENAI_MODEL_MAX_OUTPUT_TOKENS:-8192}"
+MODEL_MAX_OUTPUT_TOKENS="${OPENAI_MODEL_MAX_OUTPUT_TOKENS:-65536}"
 REASONING_EFFORT="${OPENAI_REASONING_EFFORT:-}"
 START_FREE_BYTES=$((75 * 1024 * 1024 * 1024))
 TASK_FREE_BYTES=$((20 * 1024 * 1024 * 1024))
@@ -145,6 +201,7 @@ REASONING_TASKS=(
 [[ "$TERMINAL_TASK_COUNT" =~ ^[0-9]+$ ]] && (( TERMINAL_TASK_COUNT <= 10 )) || { echo "Terminal-Bench task count must be 0-10." >&2; exit 2; }
 [[ "$REASONING_TASK_COUNT" =~ ^[0-9]+$ ]] && (( REASONING_TASK_COUNT <= 5 )) || { echo "LiveBench task count must be 0-5." >&2; exit 2; }
 [[ "$MODEL_MAX_INPUT_TOKENS" =~ ^[1-9][0-9]*$ ]] || { echo "Model input token limit must be a positive integer." >&2; exit 2; }
+[[ "$MODEL_MAX_OUTPUT_TOKENS" =~ ^[1-9][0-9]*$ ]] || { echo "Model output token limit must be a positive integer." >&2; exit 2; }
 [[ "$PERFORMANCE_RUNS" =~ ^[1-9][0-9]*$ ]] || { echo "Performance runs must be a positive integer." >&2; exit 2; }
 [[ "$PERFORMANCE_WARMUP_RUNS" =~ ^[0-9]+$ ]] || { echo "Performance warm-up runs cannot be negative." >&2; exit 2; }
 for concurrency in "${AGGREGATE_CONCURRENCIES[@]}"; do
@@ -155,6 +212,18 @@ TERMINAL_TASKS=("${TERMINAL_TASKS[@]:0:TERMINAL_TASK_COUNT}")
 REASONING_TASKS=("${REASONING_TASKS[@]:0:REASONING_TASK_COUNT}")
 TOTAL_TASKS=$((${#SWE_TASKS[@]} + ${#TERMINAL_TASKS[@]} + ${#REASONING_TASKS[@]}))
 TASK_INDEX=0
+
+check_task_limits() {
+  if (( ${#SWE_TASKS[@]} + ${#TERMINAL_TASKS[@]} > 0 && MODEL_MAX_INPUT_TOKENS < 16384 )); then
+    echo "Capability benchmark needs at least 16384 input tokens for SWE/Terminal agents; configured $MODEL_MAX_INPUT_TOKENS. Set OPENAI_MODEL_MAX_INPUT_TOKENS to a supported value (32768 recommended)." >&2
+    exit 2
+  fi
+  if (( TOTAL_TASKS > 0 && MODEL_MAX_OUTPUT_TOKENS < 4096 )); then
+    echo "Capability benchmark needs at least 4096 output tokens; configured $MODEL_MAX_OUTPUT_TOKENS. Remove OPENAI_MODEL_MAX_OUTPUT_TOKENS or set it to a supported value (8192 recommended)." >&2
+    exit 2
+  fi
+}
+check_task_limits
 
 RUN_ID=$(date -u +%Y%m%dT%H%M%SZ)
 RUN_DIR="$RESULTS_ROOT/$RUN_ID"
@@ -187,7 +256,9 @@ on_exit() {
   stop_task_heartbeat
   if (( RUN_FINALIZED == 0 )) && [[ "$MODE" == run && -s "$RUN_DIR/task-results.tsv" ]] && command -v "$PY" >/dev/null 2>&1; then
     (( rc == 130 || rc == 143 )) && status=interrupted
-    generate_result "$status" || true
+    if generate_result "$status"; then
+      generate_report || true
+    fi
   fi
 }
 
@@ -255,11 +326,16 @@ PY
   if [[ "$detected_context" =~ ^[1-9][0-9]*$ ]]; then
     MODEL_CONTEXT_TOKENS="$detected_context"
     MODEL_CONTEXT_SOURCE="api_models"
+    (( MODEL_MAX_OUTPUT_TOKENS < detected_context )) || die "Output limit $MODEL_MAX_OUTPUT_TOKENS is not smaller than the model context $detected_context."
     if [[ -z "${OPENAI_MODEL_MAX_INPUT_TOKENS:-}" ]]; then
-      MODEL_MAX_INPUT_TOKENS="$detected_context"
-      MODEL_INFO=$(printf '{"max_input_tokens":%s,"max_output_tokens":%s,"input_cost_per_token":0,"output_cost_per_token":0}' \
-        "$MODEL_MAX_INPUT_TOKENS" "$MODEL_MAX_OUTPUT_TOKENS")
+      MODEL_MAX_INPUT_TOKENS=$((detected_context - MODEL_MAX_OUTPUT_TOKENS))
+      if (( MODEL_MAX_INPUT_TOKENS > 262144 )); then
+        MODEL_MAX_INPUT_TOKENS=262144
+      fi
     fi
+    (( MODEL_MAX_INPUT_TOKENS + MODEL_MAX_OUTPUT_TOKENS <= detected_context )) || die "Input $MODEL_MAX_INPUT_TOKENS + output $MODEL_MAX_OUTPUT_TOKENS exceeds the model context $detected_context."
+    MODEL_INFO=$(printf '{"max_input_tokens":%s,"max_output_tokens":%s,"input_cost_per_token":0,"output_cost_per_token":0}' \
+      "$MODEL_MAX_INPUT_TOKENS" "$MODEL_MAX_OUTPUT_TOKENS")
   fi
   curl --fail --silent --show-error --max-time 120 "$API_BASE/chat/completions" \
     -H "Authorization: Bearer $API_KEY" \
@@ -275,9 +351,13 @@ if not choices:
 returned_model = data.get("model")
 if returned_model and returned_model != sys.argv[2]:
     raise SystemExit(f"Requested model {sys.argv[2]!r}, but endpoint returned {returned_model!r}")
-content = (choices[0].get("message") or {}).get("content")
-if not isinstance(content, str) or "READY" not in content.upper():
-    raise SystemExit("Chat smoke test did not complete the requested READY response")
+message = choices[0].get("message") or {}
+content = message.get("content") or ""
+reasoning = message.get("reasoning_content") or message.get("reasoning") or ""
+if not any(isinstance(part, str) and part.strip() for part in (content, reasoning)) and not message.get("tool_calls"):
+    raise SystemExit("Chat smoke test returned no assistant output")
+if "READY" not in content.upper():
+    print("Warning: model did not follow the READY instruction; performance testing can continue.", file=sys.stderr)
 PY
 }
 
@@ -306,7 +386,7 @@ swe_image() {
 }
 
 harbor_model_args() {
-  local args=(-a terminus-2 -m "openai/$MODEL_ID" --ak "api_base=$API_BASE" --ak max_turns=100 --ak "model_info=$MODEL_INFO" -n 1 -k 1 -r 0 -y)
+  local args=(-a terminus-2 -m "openai/$MODEL_ID" --ak "api_base=$API_BASE" --ak max_turns=100 --ak "model_info=$MODEL_INFO" --agent-timeout-multiplier 1.2 -n 1 -k 1 -r 0 -y)
   [[ -n "$REASONING_EFFORT" ]] && args+=(--ak "reasoning_effort=$REASONING_EFFORT")
   printf '%s\n' "${args[@]}"
 }
@@ -353,7 +433,8 @@ preflight() {
   echo "Preflight artifacts: $PREFLIGHT_DIR"
   echo "Configuration: $CONFIG_FILE"
   echo "API endpoint: $API_BASE"
-  echo "Model: $MODEL_ID"
+  echo "Model ID: $MODEL_ID"
+  echo "Display model name: $MODEL_NAME"
   echo "Benchmark type: $BENCHMARK_TYPE"
   [[ -n "$REASONING_EFFORT" ]] && echo "Reasoning effort: $REASONING_EFFORT"
   log_event "[PREFLIGHT] Checking local tools and Python runtime"
@@ -366,7 +447,11 @@ preflight() {
   fi
   log_event "[PREFLIGHT] Validating model API"
   validate_api
+  check_task_limits
   log_event "[PREFLIGHT] Model context=$MODEL_CONTEXT_TOKENS tokens (source=$MODEL_CONTEXT_SOURCE); benchmark input limit=$MODEL_MAX_INPUT_TOKENS"
+  if [[ "$BENCHMARK_TYPE" != tasks && "$MODEL_CONTEXT_SOURCE" != api_models ]]; then
+    log_event "[PREFLIGHT] WARNING: API did not report a context limit; the benchmark setting is unverified. The fixed $PREFILL_PROMPT_LINES-line prefill prompt will not be reduced."
+  fi
   if [[ "$BENCHMARK_TYPE" != performance ]]; then
     log_event "[PREFLIGHT] Validating SWE-bench task selection"
     validate_swe_tasks
@@ -388,12 +473,14 @@ generate_result() {
     --template "$RESULT_TEMPLATE" \
     --output "$RESULT_FILE" \
     --status "$status" \
+    --benchmark-mode "$BENCHMARK_TYPE" \
     --model-id "$MODEL_ID" \
     --model-name "$MODEL_NAME" \
     --api-base-url "$API_BASE" \
     --reasoning-effort "$REASONING_EFFORT" \
     --maximum-context-tokens "$MODEL_CONTEXT_TOKENS" \
     --benchmark-input-limit-tokens "$MODEL_MAX_INPUT_TOKENS" \
+    --benchmark-output-limit-tokens "$MODEL_MAX_OUTPUT_TOKENS" \
     --context-source "$MODEL_CONTEXT_SOURCE" \
     --swe-count "$SWE_TASK_COUNT" \
     --terminal-count "$TERMINAL_TASK_COUNT" \
@@ -414,13 +501,13 @@ measure_performance() {
   PREFILL_MEASUREMENT=$(timeout --foreground --signal=INT --kill-after=30s "$PERFORMANCE_SECONDS" \
     "$PY" "$MEASURE_API" --endpoint "$API_BASE" --model "$MODEL_ID" "${reasoning_args[@]}" \
       --runs "$PERFORMANCE_RUNS" --warmup-runs "$PERFORMANCE_WARMUP_RUNS" \
-      --prompt-lines "$PREFILL_PROMPT_LINES" --max-tokens "$PREFILL_MAX_TOKENS" --json-only)
+      --prompt-lines "$PREFILL_PROMPT_LINES" --max-tokens "$PREFILL_MAX_TOKENS" --json-only) || return $?
   log_event "[PERFORMANCE] Prefill measurement complete"
   log_event "[PERFORMANCE] Decode: $PERFORMANCE_WARMUP_RUNS warm-up + $PERFORMANCE_RUNS measured uncached requests"
   DECODE_MEASUREMENT=$(timeout --foreground --signal=INT --kill-after=30s "$PERFORMANCE_SECONDS" \
     "$PY" "$MEASURE_API" --endpoint "$API_BASE" --model "$MODEL_ID" "${reasoning_args[@]}" \
       --runs "$PERFORMANCE_RUNS" --warmup-runs "$PERFORMANCE_WARMUP_RUNS" \
-      --prompt-lines "$DECODE_PROMPT_LINES" --max-tokens "$DECODE_MAX_TOKENS" --json-only)
+      --prompt-lines "$DECODE_PROMPT_LINES" --max-tokens "$DECODE_MAX_TOKENS" --json-only) || return $?
   log_event "[PERFORMANCE] Decode measurement complete"
   local concurrency measurement
   for concurrency in "${AGGREGATE_CONCURRENCIES[@]}"; do
@@ -429,7 +516,7 @@ measure_performance() {
       "$PY" "$MEASURE_API" --endpoint "$API_BASE" --model "$MODEL_ID" "${reasoning_args[@]}" \
         --runs "$PERFORMANCE_RUNS" --warmup-runs "$PERFORMANCE_WARMUP_RUNS" \
         --prompt-lines "$DECODE_PROMPT_LINES" --max-tokens "$DECODE_MAX_TOKENS" \
-        --concurrency "$concurrency" --json-only)
+        --concurrency "$concurrency" --json-only) || return $?
     AGGREGATE_MEASUREMENTS+=("$measurement")
     log_event "[PERFORMANCE] Aggregate generation C$concurrency complete"
   done
@@ -468,32 +555,7 @@ record_result() {
 }
 
 json_outcome() {
-  "$PY" - "$1" "$2" <<'PY'
-import json, pathlib, sys
-kind, root = sys.argv[1], pathlib.Path(sys.argv[2])
-if kind == "swe":
-    reports = [p for p in root.glob("*.json") if p.name != "preds.json"]
-    if not reports:
-        print("infra_error")
-    else:
-        data = json.loads(reports[-1].read_text())
-        print("pass" if data.get("resolved_instances", 0) == 1 else "fail")
-elif kind == "terminal":
-    reports = list(root.glob("*/result.json"))
-    if not reports:
-        print("infra_error")
-    else:
-        data = json.loads(reports[-1].read_text())
-        reward_stats = [e.get("reward_stats", {}).get("reward", {}) for e in data.get("stats", {}).get("evals", {}).values()]
-        rewards = [float(value) for stats in reward_stats for value, trials in stats.items() if trials]
-        print("pass" if rewards and max(rewards) >= 1 else "fail")
-else:
-    report = root / "result.json"
-    if not report.exists():
-        print("infra_error")
-    else:
-        print(json.loads(report.read_text()).get("outcome", "infra_error"))
-PY
+  "$PY" "$RESULT_BUILDER" --task-outcome "$1" "$2"
 }
 
 run_swe() {
@@ -610,6 +672,7 @@ run_reasoning() {
 }
 
 main() {
+  local performance_rc=0
   preflight
   if [[ "$MODE" == --preflight ]]; then
     echo "Preflight-only run complete: $RUN_DIR"
@@ -636,7 +699,17 @@ main() {
     done
   fi
   if [[ "$BENCHMARK_TYPE" != tasks ]]; then
-    measure_performance
+    measure_performance || performance_rc=$?
+    if (( performance_rc != 0 )); then
+      if (( performance_rc == 3 && TOTAL_TASKS == 0 )); then
+        generate_result skipped
+        generate_report
+        RUN_FINALIZED=1
+        log_event "[BENCHMARK] SKIPPED: model server could not complete a measurable performance request; see the diagnostic above. result=$RESULT_FILE report=$REPORT_FILE"
+        return 0
+      fi
+      return "$performance_rc"
+    fi
   fi
   echo "$(date +%s)" > "$RUN_DIR/benchmark-end-epoch"
   : > "$RUN_DIR/active-task.tsv"

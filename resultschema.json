@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.4.0",
+  "schema_version": "2.4.1",
   "generated_at": "2026-09-02T06:05:42Z",
   "run": {
     "id": "example-run",
@@ -27,12 +27,14 @@
   "model": {
     "id": "/models/example",
     "name": "example",
+    "served_model_root": null,
     "organization": null,
     "source_url": null,
     "reasoning_effort": null,
-    "maximum_context_tokens": 131072,
-    "benchmark_input_limit_tokens": 131072,
-    "context_source": "fallback"
+    "maximum_context_tokens": 327680,
+    "benchmark_input_limit_tokens": 262144,
+    "benchmark_output_limit_tokens": 65536,
+    "context_source": "api_models"
   },
   "environment": {
     "deployment": "openai_compatible_endpoint",

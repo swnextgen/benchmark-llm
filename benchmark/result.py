@@ -9,6 +9,7 @@ import pathlib
 import platform
 import re
 import sys
+import tempfile
 
 
 SUITES = {
@@ -24,6 +25,47 @@ def read_rows(path, delimiter="\t"):
         return []
     with path.open() as file:
         return list(csv.DictReader(file, delimiter=delimiter))
+
+
+def task_outcome(kind, root):
+    try:
+        if kind == "swe":
+            report = next((path for path in root.glob("*.json") if path.name != "preds.json"), None)
+            if report is None:
+                return "infra_error"
+            return "pass" if json.loads(report.read_text()).get("resolved_instances") == 1 else "fail"
+        if kind == "terminal":
+            report = next(root.glob("*/result.json"), None)
+            if report is None:
+                return "infra_error"
+            evaluations = json.loads(report.read_text())["stats"]["evals"].values()
+            exceptions = {
+                name for evaluation in evaluations
+                for name, trials in evaluation.get("exception_stats", {}).items() if trials
+            }
+            if any("timeout" in name.lower() for name in exceptions):
+                return "timeout"
+            if exceptions:
+                return "infra_error"
+            rewards = [
+                float(value) for evaluation in evaluations
+                for value, trials in evaluation.get("reward_stats", {}).get("reward", {}).items() if trials
+            ]
+            return "pass" if rewards and max(rewards) >= 1 else "fail" if rewards else "infra_error"
+        if kind == "reasoning":
+            outcome = json.loads((root / "result.json").read_text()).get("outcome")
+            return outcome if outcome in {"pass", "fail", "timeout", "infra_error"} else "infra_error"
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return "infra_error"
+
+
+def served_model_root(path, model_id):
+    try:
+        models = json.loads(path.read_text()).get("data", [])
+        return next((item.get("root") for item in models if isinstance(item, dict) and item.get("id") == model_id), None)
+    except (OSError, ValueError, TypeError, AttributeError):
+        return None
 
 
 def direct_measurement(raw):
@@ -65,6 +107,25 @@ def self_test():
     assert [item["concurrency"] for item in metrics["aggregate_measurements"]] == [8, 12]
     assert metrics["aggregate_measurements"][0]["runs"] == 2
     assert metrics["aggregate_measurements"][0]["mean_time_to_first_token_seconds"] == 1.5
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        assert task_outcome("terminal", root) == "infra_error"
+        trial = root / "trial"
+        trial.mkdir()
+        report = trial / "result.json"
+        for errors, rewards, expected in (
+            ({}, {"1.0": ["trial"]}, "pass"),
+            ({}, {"0.0": ["trial"]}, "fail"),
+            ({"AgentTimeoutError": ["trial"]}, {"0.0": ["trial"]}, "timeout"),
+            ({"VerifierError": ["trial"]}, {"0.0": ["trial"]}, "infra_error"),
+        ):
+            report.write_text(json.dumps({"stats": {"evals": {"task": {
+                "exception_stats": errors, "reward_stats": {"reward": rewards},
+            }}}}))
+            assert task_outcome("terminal", root) == expected
+        models = root / "models.json"
+        models.write_text(json.dumps({"data": [{"id": "alias", "root": "/models/DeepSeek"}]}))
+        assert served_model_root(models, "alias") == "/models/DeepSeek"
     print("result self-test passed")
 
 
@@ -83,7 +144,7 @@ def service_metrics(root, rows, prefill_raw, decode_raw, aggregate_raws):
     for path in root.rglob("*.log"):
         try:
             for line in path.open(errors="replace"):
-                format_failures += bool(re.search(r"format error|malformed", line, re.I))
+                format_failures += bool(re.search(r"format.?error|malformed", line, re.I))
                 tool_failures += bool(re.search(r"tool call error|invalid tool", line, re.I))
         except OSError:
             pass
@@ -195,13 +256,15 @@ def main():
     parser.add_argument("--run-dir", type=pathlib.Path, required=True)
     parser.add_argument("--template", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
-    parser.add_argument("--status", choices=("running", "completed", "failed", "interrupted"), required=True)
+    parser.add_argument("--status", choices=("running", "completed", "failed", "interrupted", "skipped"), required=True)
+    parser.add_argument("--benchmark-mode", choices=("performance", "tasks", "both"), default="both")
     parser.add_argument("--model-id", required=True)
     parser.add_argument("--model-name", required=True)
     parser.add_argument("--api-base-url", required=True)
     parser.add_argument("--reasoning-effort", default="")
     parser.add_argument("--maximum-context-tokens", type=int, required=True)
     parser.add_argument("--benchmark-input-limit-tokens", type=int, required=True)
+    parser.add_argument("--benchmark-output-limit-tokens", type=int, required=True)
     parser.add_argument("--context-source", choices=("api_models", "configured", "fallback"), required=True)
     parser.add_argument("--swe-count", type=int, default=10)
     parser.add_argument("--terminal-count", type=int, default=10)
@@ -235,11 +298,13 @@ def main():
     model = {
         "id": args.model_id,
         "name": args.model_name,
+        "served_model_root": served_model_root(root / "preflight" / "models.json", args.model_id),
         "organization": None,
         "source_url": None,
         "reasoning_effort": args.reasoning_effort or None,
         "maximum_context_tokens": args.maximum_context_tokens,
         "benchmark_input_limit_tokens": args.benchmark_input_limit_tokens,
+        "benchmark_output_limit_tokens": args.benchmark_output_limit_tokens,
         "context_source": args.context_source,
     }
     completed = len(rows)
@@ -266,6 +331,8 @@ def main():
         "benchmark_versions": template.get("environment", {}).get("benchmark_versions", {}),
     }
     result = {
+        "benchmark_profile": "advanced",
+        "benchmark_mode": {"performance": "performance", "tasks": "capability", "both": "complete"}[args.benchmark_mode],
         "schema_version": template.get("schema_version", "1.0.0"),
         "generated_at": iso(now),
         "run": {
@@ -302,7 +369,7 @@ def main():
             "maximum_vram_usage_gib": None,
             "maximum_swap_usage_gib": None,
         },
-        "benchmark_sources": template.get("benchmark_sources", []),
+        "benchmark_sources": [] if args.benchmark_mode == "performance" else template.get("benchmark_sources", []),
         "tasks": tasks,
         "artifacts": {
             "result_directory": str(pathlib.Path("benchmark-results") / root.name),
@@ -319,4 +386,9 @@ def main():
 
 
 if __name__ == "__main__":
-    self_test() if sys.argv[1:] == ["--self-test"] else main()
+    if sys.argv[1:] == ["--self-test"]:
+        self_test()
+    elif len(sys.argv) == 4 and sys.argv[1] == "--task-outcome":
+        print(task_outcome(sys.argv[2], pathlib.Path(sys.argv[3])))
+    else:
+        main()

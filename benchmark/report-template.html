@@ -55,7 +55,7 @@
     }
     .status.pass, .status.completed { color: var(--good); }
     .status.fail, .status.failed, .status.infra_error { color: var(--bad); }
-    .status.timeout, .status.interrupted { color: var(--warn); }
+    .status.timeout, .status.interrupted, .status.skipped { color: var(--warn); }
     .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 28px; }
     .details dt { color: var(--muted); font-size: 12px; }
     .details dd { margin: 3px 0 0; overflow-wrap: anywhere; }
@@ -87,6 +87,7 @@
       <div class="eyebrow">AI BENCHMARK REPORT</div>
       <h1 id="model-name">Model benchmark</h1>
       <div class="subtitle"><code id="model-id"></code> · <span id="run-status" class="status"></span></div>
+      <div class="subtitle" id="run-note"></div>
     </header>
 
     <div class="grid">
@@ -109,9 +110,11 @@
       <h2>Environment</h2>
       <dl class="details">
         <div><dt>API endpoint</dt><dd id="api-base"></dd></div>
+        <div><dt>Served model root (preflight)</dt><dd id="served-root"></dd></div>
         <div><dt>Context limit</dt><dd id="context-limit"></dd></div>
         <div><dt>Context source</dt><dd id="context-source"></dd></div>
         <div><dt>Benchmark input limit</dt><dd id="input-limit"></dd></div>
+        <div><dt>Benchmark output limit</dt><dd id="output-limit"></dd></div>
         <div><dt>Aggregate concurrency</dt><dd id="concurrency"></dd></div>
         <div><dt>Benchmark architecture</dt><dd id="architecture"></dd></div>
         <div><dt>Docker version</dt><dd id="docker-version"></dd></div>
@@ -169,6 +172,11 @@
     set("model-id", data.model && data.model.id || "—");
     set("run-status", data.run && data.run.status || "unknown");
     get("run-status").classList.add(data.run && data.run.status || "unknown");
+    set("run-note", data.run && data.run.status === "failed"
+      ? "This report is partial. Completed task results are preserved; unavailable performance metrics are shown as —."
+      : data.run && data.run.status === "skipped"
+        ? "Performance testing was skipped because the server could not complete a measurable request. See run.log for details."
+      : "");
     set("passed", value(progress.passed));
     set("failed", value(progress.failed));
     set("timeouts", value(progress.timeouts));
@@ -200,9 +208,11 @@
       get("aggregate-cards").appendChild(card);
     });
     set("api-base", environment.api_base_url || "—");
+    set("served-root", data.model && data.model.served_model_root || "—");
     set("context-limit", value(data.model && data.model.maximum_context_tokens, " tokens"));
     set("context-source", label(data.model && data.model.context_source));
     set("input-limit", value(data.model && data.model.benchmark_input_limit_tokens, " tokens"));
+    set("output-limit", value(data.model && data.model.benchmark_output_limit_tokens, " tokens"));
     set("concurrency", aggregates.length ? aggregates.map((item) => "C" + item.concurrency).join(", ") : "—");
     set("architecture", environment.benchmark_host_architecture || "—");
     set("docker-version", environment.docker_version || "—");

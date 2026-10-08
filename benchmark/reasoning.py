@@ -100,11 +100,12 @@ def run(args):
         "ground_truth": question["ground_truth"],
         "answer": answer,
         "usage": response.get("usage", {}),
+        "finish_reason": response["choices"][0].get("finish_reason"),
         "response_id": response.get("id"),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n")
-    print(json.dumps({key: result[key] for key in ("id", "outcome", "score", "duration_seconds", "usage")}))
+    print(json.dumps({key: result[key] for key in ("id", "outcome", "score", "duration_seconds", "usage", "finish_reason")}))
 
 
 def self_test(questions_path):

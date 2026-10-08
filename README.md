@@ -1,6 +1,6 @@
-# OpenAI-Compatible Model Benchmarking
+# Edge and Advanced Systems Model Benchmarking
 
-Reproducible evaluation of any model exposed through an OpenAI-compatible Chat Completions endpoint, using direct API measurements, SWE-bench Verified, Terminal-Bench 2.1 and a pinned five-question LiveBench reasoning subset.
+One runner for OpenAI-compatible model endpoints on Edge devices and Advanced/DGX-class systems.
 
 The complete first pass contains up to 10 SWE-bench fixes, 10 Terminal-Bench tasks and 5 reasoning questions. It has no overall wall-clock deadline; each individual task retains a safety timeout.
 
@@ -31,9 +31,9 @@ For deployment on a new machine, follow the [Setup and Usage Guide](docs/setup-g
 
 ## Quick start
 
-### 1. Prepare the model endpoint
+### 1. Prepare the model
 
-Start any OpenAI-compatible Chat Completions service.
+Start an OpenAI-compatible Chat Completions service for the model being tested.
 
 ### 2. Configure the workstation
 
@@ -41,21 +41,26 @@ Start any OpenAI-compatible Chat Completions service.
 cd ai-benchmark
 ```
 
-Run the script and enter the API URL, model ID and benchmark type. The URL may end in `/v1` or `/v1/chat/completions`; the runner normalizes both.
+Run the script. It suggests Edge Device Benchmark at 32 GiB RAM or below and Advanced Systems Benchmark above 32 GiB; you can override the suggestion. Then choose Performance, Capability, or Complete.
 
 ```bash
 chmod +x ./benchmark/run.sh
 ./benchmark/run.sh
 ```
 
-Choose `1` for performance only, `2` for up to 10 SWE, 10 Terminal and 5 LiveBench tasks, or `3` to run the selected tasks followed by performance measurements. Performance is the default.
+Advanced Capability runs up to 10 SWE, 10 Terminal and 5 LiveBench tasks. Edge Capability runs the local reasoning, logic, coding, agent and RAG suites. Complete combines performance and capability.
 
-`config.env` is optional and may contain only defaults for those same two prompts:
+`config.env` is optional. Advanced runs can use:
 
 ```env
 OPENAI_BASE_URL=http://127.0.0.1:8000/v1
 OPENAI_MODEL=/models/example
+OPENAI_MODEL_DISPLAY_NAME=Example Model
 ```
+
+The model ID is sent to the API. The display model name is used in JSON, HTML and result filenames; if omitted, it defaults to the final component of the model ID.
+
+Non-interactive Edge runs use `BENCHMARK_PROFILE=edge`, `EDGE_BASE_URL`, and `EDGE_MODEL`. Set `BENCHMARK_TYPE=performance|tasks|both` for all profiles.
 
 For authenticated endpoints, export `OPENAI_API_KEY` separately; it is never requested or written to results.
 
@@ -65,7 +70,7 @@ For authenticated endpoints, export `OPENAI_API_KEY` separately; it is never req
 ./benchmark/run.sh --preflight
 ```
 
-Performance preflight checks the API and local Python runtime. Task preflight additionally installs the pinned tools, validates task IDs, prepares Docker images and runs a Harbor oracle smoke test; run it with `BENCHMARK_TYPE=tasks ./benchmark/run.sh --preflight`.
+Edge and Advanced Performance preflight check the API and Python runtime. Advanced Capability/Complete additionally validates task IDs, Docker images and the Harbor oracle.
 
 ### 4. Run the benchmark
 
@@ -74,7 +79,7 @@ chmod +x ./benchmark/run.sh
 ./benchmark/run.sh
 ```
 
-Live pass/fail progress is printed to the terminal and `run.log`. After completion, the result directory contains `<model-name>-result.json` and a standalone `<model-name>-result.html` report that can be opened directly in a browser.
+Results are written under `benchmark-results/<run-id>`. Every runner emits one `<model-name>-result.json` object ready for the web application's importer. JSON includes `benchmark_profile` (`edge` or `advanced`) and `benchmark_mode` (`performance`, `capability`, or `complete`).
 
 The runner does not remove the prepared Docker image cache. Remove it explicitly only when disk space is needed:
 

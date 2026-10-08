@@ -444,10 +444,12 @@ Aggregate throughput is measured sequentially at C4, C8 and C12 by default and e
 
 ## 14. Optional tuning
 
+No token-limit exports are needed for a normal Advanced run. `run.sh` defaults to 65536 output tokens and, when `/v1/models` reports a context length, reserves output space and caps automatic input at 262144 tokens. The variables below are optional overrides for models with different limits.
+
 | Variable | Default | Purpose |
 |---|---:|---|
-| `OPENAI_MODEL_MAX_INPUT_TOKENS` | API value or `131072` fallback | Optional input limit advertised to agents |
-| `OPENAI_MODEL_MAX_OUTPUT_TOKENS` | `8192` | Maximum agent output |
+| `OPENAI_MODEL_MAX_INPUT_TOKENS` | Up to 262144 after reserving output; 131072 fallback if context is unavailable | Input limit advertised to agents; at least 16K for SWE/Terminal tasks |
+| `OPENAI_MODEL_MAX_OUTPUT_TOKENS` | `65536` | Maximum agent output; at least 4K for capability tasks |
 | `OPENAI_REASONING_EFFORT` | empty | Optional reasoning setting |
 | `OPENAI_PERFORMANCE_TIMEOUT_SECONDS` | `1800` | Performance-stage timeout |
 | `OPENAI_PERFORMANCE_RUNS` | `3` | Measurement repetitions |
@@ -457,13 +459,9 @@ Aggregate throughput is measured sequentially at C4, C8 and C12 by default and e
 | `OPENAI_DECODE_MAX_TOKENS` | `512` | Decode output size |
 | `OPENAI_AGGREGATE_CONCURRENCIES` | `4 8 12` | Space-separated aggregate parallel-request levels |
 
-Example for a 32K model:
+Capability preflight rejects smaller token limits before preparing task images. A 4K input/1K output setting can cause repeated context summarization and truncated answers, so its pass rate is not comparable with an 8K-output run. Harbor's agent timeout is scaled to fit inside the runner's 20-minute task cap; a Harbor `AgentTimeoutError` is reported as a timeout, not a model failure. When `/v1/models` provides a `root` field, the result also records the backend model behind an API alias at preflight time.
 
-```bash
-export OPENAI_MODEL_MAX_INPUT_TOKENS=32768
-export OPENAI_MODEL_MAX_OUTPUT_TOKENS=4096
-./benchmark/run.sh
-```
+Preflight rejects an explicit input/output combination above the model's advertised context. Models with 65536 tokens of context or less require a smaller output-limit override.
 
 ## 15. Stop and cleanup
 

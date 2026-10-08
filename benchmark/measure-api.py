@@ -8,7 +8,10 @@ import os
 import statistics
 import time
 import uuid
+from http.client import HTTPException
 from pathlib import Path
+import sys
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
@@ -18,6 +21,24 @@ def generated_text(chunk):
         return ""
     delta = choices[0].get("delta") or {}
     return delta.get("reasoning") or delta.get("reasoning_content") or delta.get("content") or ""
+
+
+def http_error_outcome(code, detail):
+    try:
+        detail = json.loads(detail).get("message", detail)
+    except (ValueError, AttributeError):
+        pass
+    if code == 400 and "prompt length" in detail and "max_num_tokens" in detail:
+        return (3, f"SKIPPED: the model server cannot process the benchmark's fixed prompt.\n"
+                f"Server response: {detail}\n"
+                "Increase the server's request-token limit and rerun. The benchmark will not shorten its prompt.")
+    return (1, f"Model API HTTP {code}: {detail}")
+
+
+def complete_stream(first_token_at, usage):
+    return first_token_at is not None and isinstance(usage, dict) and all(
+        isinstance(usage.get(key), int) for key in ("prompt_tokens", "completion_tokens")
+    )
 
 
 def run_once(endpoint, api_key, model, prompt_lines, max_tokens, reasoning_effort):
@@ -48,19 +69,45 @@ def run_once(endpoint, api_key, model, prompt_lines, max_tokens, reasoning_effor
     started = time.perf_counter()
     first_token_at = None
     usage = None
-    with urlopen(request, timeout=900) as response:
-        for raw_line in response:
-            line = raw_line.decode().strip()
-            if not line.startswith("data: ") or line == "data: [DONE]":
-                continue
-            chunk = json.loads(line[6:])
-            if first_token_at is None and generated_text(chunk):
-                first_token_at = time.perf_counter()
-            if chunk.get("usage"):
-                usage = chunk["usage"]
+    stream_events = 0
+    saw_done = False
+    content_type = "unknown"
+    try:
+        with urlopen(request, timeout=900) as response:
+            content_type = response.headers.get("Content-Type", "unknown")
+            for raw_line in response:
+                line = raw_line.decode(errors="replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    saw_done = True
+                    continue
+                if not data:
+                    continue
+                chunk = json.loads(data)
+                stream_events += 1
+                if first_token_at is None and generated_text(chunk):
+                    first_token_at = time.perf_counter()
+                if chunk.get("usage"):
+                    usage = chunk["usage"]
+    except HTTPError as error:
+        code, message = http_error_outcome(error.code, error.read(4096).decode(errors="replace"))
+        print(message, file=sys.stderr)
+        raise SystemExit(code) from error
+    except (OSError, HTTPException, json.JSONDecodeError) as error:
+        print(f"Model API streaming failed: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
     finished = time.perf_counter()
-    if first_token_at is None or usage is None:
-        raise RuntimeError("Streaming response did not include token timing and usage")
+    if not complete_stream(first_token_at, usage):
+        print(
+            "SKIPPED: streaming response did not provide token timing and usage; accurate TTFT/TPS cannot be measured. "
+            f"first_token_seen={first_token_at is not None}, usage_seen={usage is not None}, "
+            f"SSE_events={stream_events}, done={saw_done}, content_type={content_type}. "
+            "Check the model server's streaming support and logs.",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
 
     prompt_tokens = usage["prompt_tokens"]
     completion_tokens = usage["completion_tokens"]
@@ -123,6 +170,10 @@ def main():
         assert generated_text({"choices": [{"delta": {"content": "X"}}]}) == "X"
         assert generated_text({"choices": [{"delta": {"reasoning": "Z"}}]}) == "Z"
         assert generated_text({"choices": [{"delta": {"reasoning_content": "Y"}}]}) == "Y"
+        assert http_error_outcome(400, '{"message":"prompt length (51767) exceeds max_num_tokens (4096)"}')[0] == 3
+        assert http_error_outcome(401, "unauthorized")[0] == 1
+        assert not complete_stream(None, None)
+        assert complete_stream(1, {"prompt_tokens": 10, "completion_tokens": 2})
         batch = aggregate_batch([
             {"prompt_tokens": 10, "completion_tokens": 101, "ttft_seconds": 1, "decode_tps": 50},
             {"prompt_tokens": 10, "completion_tokens": 101, "ttft_seconds": 3, "decode_tps": 50},
