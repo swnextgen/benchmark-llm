@@ -1,0 +1,11 @@
+agent:
+  step_limit: 100
+
+environment:
+  # Large SWE images can need several minutes for their first container start.
+  pull_timeout: 600
+
+model:
+  cost_tracking: ignore_errors
+  model_kwargs:
+    drop_params: true

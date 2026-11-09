@@ -1,0 +1,562 @@
+[
+  {
+    "id": "legal-abercrombie-6",
+    "domain": "legal",
+    "config": "abercrombie",
+    "row": 6,
+    "summary": "LegalBench trademark classification, public test row 6.",
+    "input": {"text": "The mark \"Gun\" for a firearm."},
+    "labels": ["generic", "descriptive", "suggestive", "arbitrary", "fanciful"],
+    "expected": "generic"
+  },
+  {
+    "id": "legal-abercrombie-15",
+    "domain": "legal",
+    "config": "abercrombie",
+    "row": 15,
+    "summary": "LegalBench trademark classification, public test row 15.",
+    "input": {"text": "The mark \"Fruit\" for apples."},
+    "labels": ["generic", "descriptive", "suggestive", "arbitrary", "fanciful"],
+    "expected": "generic"
+  },
+  {
+    "id": "legal-decision-section-0",
+    "domain": "legal",
+    "config": "function_of_decision_section",
+    "row": 0,
+    "summary": "LegalBench judicial paragraph function, public test row 0.",
+    "input": {"Paragraph": "In 2010, Alexander Khochinsky, then a Russian foreign national living in the United States, contacted the Republic of Poland seeking restitution for the loss of his family's land during the Nazi invasion. In an effort to negotiate with Poland for the payment of restitution, Khochinsky offered a painting in his possession that he believed resembled one reported missing by Poland. Poland did not respond to the offer as Khochinsky anticipated. Instead, it sought Khochinsky's extradition from the United States on the ground that he was knowingly in possession of a stolen painting. Poland's extradition attempt ultimately failed."},
+    "labels": ["Facts", "Procedural History", "Issue", "Rule", "Analysis", "Conclusion", "Decree"],
+    "expected": "Facts"
+  },
+  {
+    "id": "legal-decision-section-1",
+    "domain": "legal",
+    "config": "function_of_decision_section",
+    "row": 1,
+    "summary": "LegalBench judicial paragraph function, public test row 1.",
+    "input": {"Paragraph": "Khochinsky then brought an action against Poland, alleging that the effort to extradite him was tortious and infringed his rights. The district court dismissed the suit, holding that the Foreign Sovereign *5 **377 Immunities Act gives Poland immunity from Khochinsky's action."},
+    "labels": ["Facts", "Procedural History", "Issue", "Rule", "Analysis", "Conclusion", "Decree"],
+    "expected": "Procedural History"
+  },
+  {
+    "id": "legal-citizenship-0",
+    "domain": "legal",
+    "config": "international_citizenship_questions",
+    "row": 0,
+    "summary": "LegalBench international citizenship question, public test row 0.",
+    "input": {"question": "Consider the country of Afghanistan. Does the country permit a parent to confer his or her citizenship on a child born abroad and, if so, under which conditions?"},
+    "labels": ["Yes", "No"],
+    "expected": "Yes"
+  },
+  {
+    "id": "legal-citizenship-1",
+    "domain": "legal",
+    "config": "international_citizenship_questions",
+    "row": 1,
+    "summary": "LegalBench international citizenship question, public test row 1.",
+    "input": {"question": "Consider the country of Afghanistan. Does the country provide for a child to acquire citizenship based on birth in the territory irrespective of the citizenship and birthplace of his/her parents and, if so, under which conditions?"},
+    "labels": ["Yes", "No"],
+    "expected": "No"
+  },
+  {
+    "id": "legal-proa-0",
+    "domain": "legal",
+    "config": "proa",
+    "row": 0,
+    "summary": "LegalBench private-right-of-action classification, public test row 0.",
+    "input": {"text": "A buyer who has a claim against an escrow account required by may bring a civil action against the seller or escrow account holder to recover money from the escrow account."},
+    "labels": ["Yes", "No"],
+    "expected": "Yes"
+  },
+  {
+    "id": "legal-proa-1",
+    "domain": "legal",
+    "config": "proa",
+    "row": 1,
+    "summary": "LegalBench private-right-of-action classification, public test row 1.",
+    "input": {"text": "A cable operator may bring a civil action for damages against any person who violates any provision of ORS."},
+    "labels": ["Yes", "No"],
+    "expected": "Yes"
+  },
+  {
+    "id": "legal-hearsay-0",
+    "domain": "legal",
+    "config": "hearsay",
+    "row": 0,
+    "summary": "LegalBench hearsay, public test row 0.",
+    "input": {"text": "On the issue of whether James is an smart individual, the fact that James came first in his class in law school."},
+    "labels": ["Yes", "No"],
+    "expected": "No"
+  },
+  {
+    "id": "legal-hearsay-33",
+    "domain": "legal",
+    "config": "hearsay",
+    "row": 33,
+    "summary": "LegalBench hearsay, public test row 33.",
+    "input": {"text": "On the issue of the sanity of Deborah, the fact that Deborah told her friend that she is completely sane."},
+    "labels": ["Yes", "No"],
+    "expected": "Yes"
+  },
+  {
+    "id": "legal-personal-jurisdiction-0",
+    "domain": "legal",
+    "config": "personal_jurisdiction",
+    "row": 0,
+    "summary": "LegalBench personal jurisdiction, public test row 0.",
+    "input": {"text": "Dustin is a repairman who lives in Arizona and repairs computers in California, Oregon, and Washington. While travelling to repair a computer in Washington, Dustin is involved in a car crash in Oregon with Laura, a citizen of Oregon. After the accident, Dustin returns to Arizona. Laura sues him in Washington. "},
+    "labels": ["Yes", "No"],
+    "expected": "No"
+  },
+  {
+    "id": "legal-personal-jurisdiction-3",
+    "domain": "legal",
+    "config": "personal_jurisdiction",
+    "row": 3,
+    "summary": "LegalBench personal jurisdiction, public test row 3.",
+    "input": {"text": "Dustin is a repairman who lives in Arizona and repairs computers in California, Oregon, and Washington. While travelling to repair a computer in Washington, Dustin is involved in a car crash in Oregon with Laura, a citizen of Oregon. After the accident, Dustin moves to New York. Laura sues him in New York. "},
+    "labels": ["Yes", "No"],
+    "expected": "Yes"
+  },
+  {
+    "id": "legal-diversity-1-0",
+    "domain": "legal",
+    "config": "diversity_1",
+    "row": 0,
+    "summary": "LegalBench diversity jurisdiction, public test row 0.",
+    "input": {"text": "James is from Arizona. Lucas is from Arizona. James sues Lucas for negligence for $64,000."},
+    "labels": ["Yes", "No"],
+    "expected": "No"
+  },
+  {
+    "id": "legal-diversity-1-4",
+    "domain": "legal",
+    "config": "diversity_1",
+    "row": 4,
+    "summary": "LegalBench diversity jurisdiction, public test row 4.",
+    "input": {"text": "Liam is from Georgia. Noah is from South Dakota. Liam sues Noah for negligence for $2,716,000."},
+    "labels": ["Yes", "No"],
+    "expected": "Yes"
+  },
+  {
+    "id": "legal-ucc-0",
+    "domain": "legal",
+    "config": "ucc_v_common_law",
+    "row": 0,
+    "summary": "LegalBench UCC vs common law, public test row 0.",
+    "input": {"contract": "Eduardo and Francesca agree that Francesca will photograph Eduardo riding his bike for $20. Is this contract governed by the UCC or the common law?"},
+    "labels": ["UCC", "Common Law"],
+    "expected": "Common Law"
+  },
+  {
+    "id": "legal-ucc-1",
+    "domain": "legal",
+    "config": "ucc_v_common_law",
+    "row": 1,
+    "summary": "LegalBench UCC vs common law, public test row 1.",
+    "input": {"contract": "Katie signs a purchase order form to buy two chairs for $500 total from Larry's furniture store. Is this contract governed by the UCC or the common law?"},
+    "labels": ["UCC", "Common Law"],
+    "expected": "UCC"
+  },
+  {
+    "id": "finance-public-1",
+    "domain": "finance",
+    "line": 1,
+    "summary": "Finance Agent v2 public question 1, closed-book, judged against the public rubric.",
+    "question": "For NASDAQ:CRWD, in what ways does management believe Artificial Intelligence (AI) will serve as a tailwind to its current business, and what risks does management associate with AI? Base your answer on disclosures across the fiscal year ended January 31, 2025, and the period ended October 31, 2025.",
+    "rubric": [{"criterion": "The Falcon platform is described as an AI-native architecture that serves as a structural competitive advantage", "severity": 1.0, "must_pass": false}, {"criterion": "Charlotte AI is identified as a generative AI security analyst that automates threat triage and investigation", "severity": 1.0, "must_pass": false}, {"criterion": "Falcon AIDR (AI Detection and Response) is identified as a product that secures customers' own AI usage, representing a net-new monetization opportunity", "severity": 1.0, "must_pass": false}, {"criterion": "AI adoption by enterprise customers is identified as a direct demand driver for the Falcon platform", "severity": 1.0, "must_pass": false}, {"criterion": "Adversarial AI is identified as a risk factor, where threat actors use AI to launch faster and more sophisticated attacks", "severity": 1.0, "must_pass": false}, {"criterion": "Regulatory and compliance developments related to AI are identified as a risk that could impose additional requirements on CrowdStrike's products and operations", "severity": 1.0, "must_pass": false}, {"criterion": "CrowdStrike's ability to keep pace with rapidly evolving AI capabilities is identified as an execution risk", "severity": 1.0, "must_pass": false}, {"criterion": "Concludes that management frames AI as tailwind driving platform demand", "severity": 2.0, "must_pass": true}, {"criterion": "Concludes that management refers to AI as a new product category", "severity": 2.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-2",
+    "domain": "finance",
+    "line": 2,
+    "summary": "Finance Agent v2 public question 2, closed-book, judged against the public rubric.",
+    "question": "For NASDAQ: MAR and NYSE: WH, using FY2025 data, identify the percentage of U.S. and global room nights or check-ins attributable to loyalty, and the funding mechanisms for each program. Based on these disclosures, which company appears better positioned to translate loyalty strength into durable economic advantage?",
+    "rubric": [{"criterion": "MAR loyalty members account for approximately 75% of U.S. and Canada hotel room nights.", "severity": 1.0, "must_pass": false}, {"criterion": "MAR loyalty members account for approximately 68% of global hotel room nights.", "severity": 1.0, "must_pass": false}, {"criterion": "WH loyalty members account for over 53% of U.S. check-ins.", "severity": 1.0, "must_pass": false}, {"criterion": "WH loyalty members account for over 37% of global check-ins.", "severity": 1.0, "must_pass": false}, {"criterion": "Response states MAR co-branded credit card agreements are a significant funding source for the Marriott Bonvoy loyalty program.", "severity": 1.0, "must_pass": false}, {"criterion": "Response states WH Wyndham Rewards is funded by contributions from eligible revenues generated by loyalty members and collected from hotels in the system.", "severity": 1.0, "must_pass": false}, {"criterion": "Response concludes that MAR is better positioned to translate loyalty strength into durable economic advantage.", "severity": 2.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-3",
+    "domain": "finance",
+    "line": 3,
+    "summary": "Finance Agent v2 public question 3, closed-book, judged against the public rubric.",
+    "question": "Who do NASDAQ: EA and NASDAQ: TTWO see as competitors in their business? Include any disclosure on direct competitors and non-interactive entertainment competitors. Which business provides more detailed disclosure on their competitive landscape?",
+    "rubric": [{"criterion": "The response states that EA faces competition from companies that build products on PC, consoles and mobile devices as well as large diversified companies who can outspend EA", "severity": 1.0, "must_pass": false}, {"criterion": "The response states that EA competes with other providers of entertainment such as movies, TV, social media and music", "severity": 1.0, "must_pass": false}, {"criterion": "The response states TTWO competes with other established and emerging interactive entertainment companies", "severity": 1.0, "must_pass": false}, {"criterion": "The response states TTWO competes with Sony, Microsoft, and Nintendo for the sale of interactive entertainment software", "severity": 1.0, "must_pass": true}, {"criterion": "The response states TTWO competes with other software, hardware, entertainment, and media for limited retail shelf space and promotional resources.", "severity": 1.0, "must_pass": false}, {"criterion": "The response states TTWO competes with other forms of entertainment such as motion pictures, television, social networking, online applications, short-form video, and other forms of entertainment", "severity": 1.0, "must_pass": true}, {"criterion": "Response concludes TTWO provides more detailed disclosure on their competitive landscape", "severity": 2.0, "must_pass": false}]
+  },
+  {
+    "id": "finance-public-4",
+    "domain": "finance",
+    "line": 4,
+    "summary": "Finance Agent v2 public question 4, closed-book, judged against the public rubric.",
+    "question": "For NASDAQ: CRWD and NASDAQ: PANW, which company achieved the higher 2-year revenue CAGR, and by how many basis points from FY 2023 to FY 2025?",
+    "rubric": [{"criterion": "CRWD 2-year revenue Compound Annual Growth Rate (CAGR) is 32.82%.", "severity": 2.0, "must_pass": false}, {"criterion": "PANW 2-year revenue Compound Annual Growth Rate (CAGR) is 15.67%.", "severity": 2.0, "must_pass": false}, {"criterion": "The response states that CRWD achieved the higher 2-year revenue Compound Annual Growth Rate (CAGR) compared to PANW.", "severity": 2.0, "must_pass": true}, {"criterion": "CRWD 2-year revenue Compound Annual Growth Rate (CAGR) exceeds PANW by 1,715 basis points (bps).", "severity": 3.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-5",
+    "domain": "finance",
+    "line": 5,
+    "summary": "Finance Agent v2 public question 5, closed-book, judged against the public rubric.",
+    "question": "For NASDAQ:CZR, calculate Adjusted EBITDAR for 2021-2024 by adding Rent Obligations (specifically the GLPI and VICI leases). Then calculate YoY growth rate in EBITDAR as well as the 3-year CAGR from '21A-24A.",
+    "rubric": [{"criterion": "2021 Adjusted EBITDAR is $4.06 billion", "severity": 1.0, "must_pass": false}, {"criterion": "2022 Adjusted EBITDAR is $4.42 billion", "severity": 1.0, "must_pass": false}, {"criterion": "2023 Adjusted EBITDAR is $5.14 billion", "severity": 1.0, "must_pass": false}, {"criterion": "2024 Adjusted EBITDAR is $4.96 billion", "severity": 1.0, "must_pass": false}, {"criterion": "YoY Adjusted EBITDAR Growth is (3.47%) in 2024", "severity": 1.0, "must_pass": false}, {"criterion": "YoY Adjusted EBITDAR Growth is 16.23% in 2023", "severity": 1.0, "must_pass": false}, {"criterion": "YoY Adjusted EBITDAR Growth is 8.84% in 2022", "severity": 1.0, "must_pass": false}, {"criterion": "Adjusted EBITDAR '21A-'24A Compound Annual Growth Rate (CAGR) growth is 6.89%", "severity": 1.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-6",
+    "domain": "finance",
+    "line": 6,
+    "summary": "Finance Agent v2 public question 6, closed-book, judged against the public rubric.",
+    "question": "Compare the inventory efficiency of NYSE: HD and NYSE: LOW for FY 2024. Calculate the actual days in fiscal year, average inventory and days inventory outstanding (based on actual days) for each company. Which company turns its inventory faster and what is the difference in DIO (Days Inventory Outstanding) between the two companies?",
+    "rubric": [{"criterion": "HD fiscal year 2024 contained 371 actual days", "severity": 1.0, "must_pass": false}, {"criterion": "LOW fiscal year 2024 contained 364 actual days", "severity": 1.0, "must_pass": false}, {"criterion": "HD average merchandise inventories for fiscal year 2024 and fiscal year 2023 is $22,213.50 million", "severity": 1.0, "must_pass": false}, {"criterion": "HD days inventory outstanding is 77.60 days", "severity": 1.0, "must_pass": true}, {"criterion": "LOW average merchandise inventories for fiscal year 2024 and fiscal year 2023 is $17,151.50 million", "severity": 1.0, "must_pass": false}, {"criterion": "LOW days inventory outstanding is 111.89 days", "severity": 1.0, "must_pass": true}, {"criterion": "HD turns its inventory faster by 34.29 days", "severity": 2.0, "must_pass": false}, {"criterion": "Conclude that HD is more efficient on the basis of inventory days outstanding.", "severity": 2.0, "must_pass": false}]
+  },
+  {
+    "id": "finance-public-7",
+    "domain": "finance",
+    "line": 7,
+    "summary": "Finance Agent v2 public question 7, closed-book, judged against the public rubric.",
+    "question": "NYSE:SUI made an announcement about a CEO transition in July 2025. Use the 8-K from July 2025 to determine who the new CEO will be and when they will start in that position. Calculate the percent change in closing share price for the 1-Calendar day, 14-Calendar Day, and 30-Calendar day period following the announcement of SUI's CEO transition in July 2025. Use the change in share price to gauge market sentiment during each period. If any day falls on non-trading day, use the next day that the market is open.",
+    "rubric": [{"criterion": "States the new CEO will be Charles D. Young", "severity": 1.0, "must_pass": true}, {"criterion": "States the new CEO will start October 1, 2025", "severity": 1.0, "must_pass": true}, {"criterion": "1-Calendar Day change is equal to (2.79%)", "severity": 1.0, "must_pass": true}, {"criterion": "14-Calendar Day change is equal to 0.80%", "severity": 1.0, "must_pass": true}, {"criterion": "30-Calendar Day change is equal to 2.20%", "severity": 1.0, "must_pass": true}, {"criterion": "States that there was negative market sentiment based on the 1-Calendar Day return metrics", "severity": 1.0, "must_pass": false}, {"criterion": "States that there was positive market sentiment based on the 14-Calendar Day returns metrics", "severity": 1.0, "must_pass": false}, {"criterion": "States that there was positive market sentiment based on the 30-Calendar Day returns metrics", "severity": 1.0, "must_pass": false}]
+  },
+  {
+    "id": "finance-public-8",
+    "domain": "finance",
+    "line": 8,
+    "summary": "Finance Agent v2 public question 8, closed-book, judged against the public rubric.",
+    "question": "For NASDAQ: DKNG, NYSE: FLUT, NASDAQ: WYNN, and NYSE: LVS, what are the companies’ share price return from 01/02/2025 through 02/27/2026? Use the closing share prices at each date. What about FY2024 to FY2025 revenue growth? How do the rankings compare? Are the rankings the same for both?",
+    "rubric": [{"criterion": "DKNG total share price return is (34.31%)", "severity": 1.0, "must_pass": false}, {"criterion": "FLUT total share price return is (58.32%)", "severity": 1.0, "must_pass": false}, {"criterion": "WYNN total share price return is 29.11%", "severity": 1.0, "must_pass": false}, {"criterion": "LVS total share price return is 13.67%", "severity": 1.0, "must_pass": false}, {"criterion": "DKNG FY2024 to FY2025 revenue growth is 26.99%", "severity": 1.0, "must_pass": false}, {"criterion": "FLUT FY2024 to FY2025 revenue growth is 16.62%", "severity": 1.0, "must_pass": false}, {"criterion": "WYNN FY2024 to FY2025 revenue growth is 0.14%", "severity": 1.0, "must_pass": false}, {"criterion": "LVS FY2024 to FY2025 revenue growth is 15.22%", "severity": 1.0, "must_pass": false}, {"criterion": "The response states the total share price return ranking from highest to lowest is WYNN, LVS, DKNG, and FLUT.", "severity": 2.0, "must_pass": true}, {"criterion": "The response states the FY2024 to FY2025 revenue growth ranking from highest to lowest is DKNG, FLUT, LVS, and WYNN.", "severity": 2.0, "must_pass": true}, {"criterion": "Response states that rankings are not the same", "severity": 1.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-9",
+    "domain": "finance",
+    "line": 9,
+    "summary": "Finance Agent v2 public question 9, closed-book, judged against the public rubric.",
+    "question": "Analyze the price performance of three software companies — NYSE: NOW, NYSE: HUBS, and NYSE: TOST — over the period from December 31, 2025 to February 27, 2026. Using each company's most recent annual filing, calculate each company's reported fiscal year 2025 revenue growth (year-over-year). Rank the companies based on both metrics and determine whether there is a rank-order correlation between fiscal 2025 revenue growth and price performance over the measurement period.",
+    "rubric": [{"criterion": "NOW YTD price performance (12/31/2025 to 02/27/2026) was (29.49%)", "severity": 1.0, "must_pass": false}, {"criterion": "TOST YTD price performance was (23.09%)", "severity": 1.0, "must_pass": false}, {"criterion": "HUBS YTD price performance was (34.09%)", "severity": 1.0, "must_pass": false}, {"criterion": "Price performance rank order: TOST > NOW > HUBS", "severity": 2.0, "must_pass": true}, {"criterion": "NOW FY2025 revenue growth was 20.88%", "severity": 1.0, "must_pass": false}, {"criterion": "TOST FY2025 revenue growth was 24.05%", "severity": 1.0, "must_pass": false}, {"criterion": "HUBS FY2025 revenue growth was 19.17%", "severity": 1.0, "must_pass": false}, {"criterion": "Revenue growth rank order: TOST > NOW > HUBS", "severity": 2.0, "must_pass": true}, {"criterion": "Response states there is a positive rank-order correlation — the rank order of price performance and revenue growth are identical", "severity": 2.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-10",
+    "domain": "finance",
+    "line": 10,
+    "summary": "Finance Agent v2 public question 10, closed-book, judged against the public rubric.",
+    "question": "For NASDAQ: FTAI, NYSE: AER, and NASDAQ: WLFC, using market prices as of December 31, 2025 and balance sheet data as of December 31, 2025 for NYSE: AER and September 30, 2025 for NASDAQ: FTAI and NASDAQ: WLFC, which company is most leveraged relative to the peer set based on price to book value, debt to equity, and debt to total capital?",
+    "rubric": [{"criterion": "FTAI Price to Book value is 79.98x", "severity": 1.0, "must_pass": false}, {"criterion": "AER Price to Book value is 1.28x", "severity": 1.0, "must_pass": false}, {"criterion": "WLFC Price to Book value is 1.42x", "severity": 1.0, "must_pass": false}, {"criterion": "FTAI Debt to Equity value is 13.65x", "severity": 1.0, "must_pass": false}, {"criterion": "AER Debt to Equity value is 2.38x", "severity": 1.0, "must_pass": false}, {"criterion": "WLFC Debt to Equity value is 3.44x", "severity": 1.0, "must_pass": false}, {"criterion": "FTAI Debt to Capital value is 93.18%", "severity": 1.0, "must_pass": false}, {"criterion": "AER Debt to Capital value is 70.39%", "severity": 1.0, "must_pass": false}, {"criterion": "WLFC Debt to capital value is 77.50%", "severity": 1.0, "must_pass": false}, {"criterion": "The peer average price to book value is 27.56x", "severity": 2.0, "must_pass": true}, {"criterion": "The peer average debt to equity ratio is 6.49x", "severity": 2.0, "must_pass": true}, {"criterion": "The peer average debt to total capital ratio is 80.36%", "severity": 2.0, "must_pass": true}, {"criterion": "The response states that FTAI is the most leveraged relative to the peer set based on the combined ranking across price to book value, debt to equity, and debt to total capital", "severity": 3.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-11",
+    "domain": "finance",
+    "line": 11,
+    "summary": "Finance Agent v2 public question 11, closed-book, judged against the public rubric.",
+    "question": "For the fiscal years 2025 (NYSE: TGT for the fiscal year ended February 1, 2025; NYSE: WMT for the fiscal year ended January 31, 2025), calculate and compare the Fixed Charge Coverage Ratio (FCCR). Use EBITDAR divided by total fixed charges (interest expense plus fixed operating lease cost). For the rent addback, use operating lease cost excluding short-term and variable lease components. Note: $2,347 million for WMT represents the fixed operating lease cost net of variable and short-term components. Which company demonstrates stronger fixed charge coverage, and by how much?",
+    "rubric": [{"criterion": "Response states that EBITDAR for NYSE: TGT is approximately $9,056 million", "severity": 1.0, "must_pass": false}, {"criterion": "Response states that total fixed charges for NYSE: TGT are approximately $920 million", "severity": 1.0, "must_pass": false}, {"criterion": "Response states that Fixed Charge Coverage Ratio (FCCR) for NYSE: TGT is approximately 9.84x", "severity": 2.0, "must_pass": true}, {"criterion": "Response states that EBITDAR for NYSE: WMT is approximately $44,668 million", "severity": 1.0, "must_pass": false}, {"criterion": "Response states that total fixed charges for NYSE: WMT are approximately $4,592 million", "severity": 1.0, "must_pass": false}, {"criterion": "Response states that Fixed Charge Coverage Ratio (FCCR) for NYSE: WMT is approximately 9.73x", "severity": 2.0, "must_pass": true}, {"criterion": "Response states that NYSE: TGT demonstrates stronger fixed charge coverage than NYSE: WMT", "severity": 2.0, "must_pass": true}, {"criterion": "Response states that the difference in Fixed Charge Coverage Ratio (FCCR) between the two companies is approximately 0.12x turns", "severity": 2.0, "must_pass": false}]
+  },
+  {
+    "id": "finance-public-12",
+    "domain": "finance",
+    "line": 12,
+    "summary": "Finance Agent v2 public question 12, closed-book, judged against the public rubric.",
+    "question": "Using share prices as of March 31, 2025 and fiscal year 2024 financial results from each company's most recently filed annual report, compare the GAAP EV/EBITDA multiple and GAAP EBITDA margin for NASDAQ: LULU and NYSE: VSCO. Which company traded at the higher EV/EBITDA multiple and which company had the higher EBITDA margin as of that date? For the EV calculations, include operating leases as debt-like items.",
+    "rubric": [{"criterion": "LULU GAAP EBITDA margin is 27.88%", "severity": 1.0, "must_pass": false}, {"criterion": "LULU EV/EBITDA is 11.47x", "severity": 1.0, "must_pass": false}, {"criterion": "VSCO GAAP EBITDA margin is 9.12%", "severity": 1.0, "must_pass": false}, {"criterion": "VSCO EV/EBITDA is 7.03x", "severity": 1.0, "must_pass": false}, {"criterion": "Response states LULU traded at the higher EV/EBITDA multiple at 11.47x versus VSCO at 7.03x", "severity": 2.0, "must_pass": true}, {"criterion": "Response states LULU had the higher EBITDA margin at 27.88% versus VSCO at 9.12%", "severity": 2.0, "must_pass": true}]
+  },
+  {
+    "id": "finance-public-13",
+    "domain": "finance",
+    "line": 13,
+    "summary": "Finance Agent v2 public question 13, closed-book, judged against the public rubric.",
+    "question": "For the announced acquisition of NYSE: GTLS by NASDAQ: BKR, analyze (i) the premium paid to Chart Industries' unaffected share price (use 7/28/25 as the date) as implied by the announced transaction terms, (ii) the pro forma impact Chart Industries will have on the combined entity's Industrial & Energy Technology segments non-Oil & Gas revenue mix as disclosed in the acquisition announcement materials, (iii) the announced run-rate cost synergies as a percentage of Chart Industries' fiscal year 2024 revenue and as a percentage of Chart Industries' fiscal year 2024 SG&A expense, and (iv) provide a short summary of why the acquisition meets strategic and financial acquisition criteria for BKR.",
+    "rubric": [{"criterion": "Calculate the premium offered by Baker Hughes to be 22.34%", "severity": 1.0, "must_pass": true}, {"criterion": "Identify that the pro forma impact to BKR Industrial & Energy Technology Segments of Chart Industries non-Oil & Gas (O&G) revenue is estimated to be 30% after the acquisition", "severity": 1.0, "must_pass": false}, {"criterion": "Identify that the run-rate synergies will be $325 million", "severity": 1.0, "must_pass": false}, {"criterion": "Calculate Synergies as a percent of FY2024 revenue to be 7.81%", "severity": 1.0, "must_pass": false}, {"criterion": "Calculate Synergies as a percent of FY2024 Selling, General & Administrative (SG&A) to be 59.37%", "severity": 1.0, "must_pass": false}, {"criterion": "State rationale why Chart Industries meets strategic and financial acquisition criteria for BKR as it serves critical applications", "severity": 1.0, "must_pass": false}, {"criterion": "State rationale why Chart Industries meets strategic and financial acquisition criteria for BKR as it has good aftermarket / lifecycle exposure", "severity": 1.0, "must_pass": false}, {"criterion": "State rationale why Chart Industries meets strategic and financial acquisition criteria for BKR as there are meaningful synergies from the merger", "severity": 1.0, "must_pass": false}, {"criterion": "State rationale why Chart Industries meets strategic and financial acquisition criteria for BKR as it improves BKR's earnings durability", "severity": 1.0, "must_pass": false}]
+  },
+  {
+    "id": "finance-public-14",
+    "domain": "finance",
+    "line": 14,
+    "summary": "Finance Agent v2 public question 14, closed-book, judged against the public rubric.",
+    "question": "For NYSE: IONQ, analyze the announced acquisition of NASDAQ: SKYT. Based on the merger announcement materials and SkyWater's FY 2025 results reported 02/25/26, what is the Implied Transaction Value / FY Revenue multiple and Transaction Value / FY Adjusted EBITDA multiple, and does the valuation appear to reflect semiconductor foundry economics, strategic domestic manufacturing value, or a quantum vertical-integration premium?",
+    "rubric": [{"criterion": "Offer price is $35.00 per share.", "severity": 1.0, "must_pass": false}, {"criterion": "SkyWater FY 2025 revenue is $442,139 thousand", "severity": 1.0, "must_pass": false}, {"criterion": "SkyWater FY 2025 adjusted EBITDA is $53,168 thousand", "severity": 1.0, "must_pass": false}, {"criterion": "Implied Transaction Value is approximately $1.8 billion (or $1,800 million).", "severity": 2.0, "must_pass": true}, {"criterion": "Transaction Value / FY 2025 Revenue is approximately 4.1x.", "severity": 2.0, "must_pass": true}, {"criterion": "Transaction Value / FY 2025 Adjusted EBITDA is approximately 34.0x.", "severity": 2.0, "must_pass": true}, {"criterion": "The valuation does not primarily reflect conventional semiconductor foundry economics.", "severity": 1.0, "must_pass": false}, {"criterion": "The valuation reflects strategic domestic manufacturing value.", "severity": 1.0, "must_pass": false}, {"criterion": "The valuation reflects a quantum vertical-integration premium.", "severity": 1.0, "must_pass": false}, {"criterion": "The quantum vertical-integration premium is identified as the primary valuation driver.", "severity": 1.0, "must_pass": false}]
+  },
+  {
+    "id": "medqa-test-0",
+    "domain": "health",
+    "row": 0,
+    "summary": "Original public MedQA test row 0.",
+    "question": "A junior orthopaedic surgery resident is completing a carpal tunnel repair with the department chairman as the attending physician. During the case, the resident inadvertently cuts a flexor tendon. The tendon is repaired without complication. The attending tells the resident that the patient will do fine, and there is no need to report this minor complication that will not harm the patient, as he does not want to make the patient worry unnecessarily. He tells the resident to leave this complication out of the operative report. Which of the following is the correct next action for the resident to take?",
+    "options": {"A": "Disclose the error to the patient and put it in the operative report", "B": "Tell the attending that he cannot fail to disclose this mistake", "C": "Report the physician to the ethics committee", "D": "Refuse to dictate the operative report"},
+    "expected": "B"
+  },
+  {
+    "id": "medqa-test-1",
+    "domain": "health",
+    "row": 1,
+    "summary": "Original public MedQA test row 1.",
+    "question": "A 67-year-old man with transitional cell carcinoma of the bladder comes to the physician because of a 2-day history of ringing sensation in his ear. He received this first course of neoadjuvant chemotherapy 1 week ago. Pure tone audiometry shows a sensorineural hearing loss of 45 dB. The expected beneficial effect of the drug that caused this patient's symptoms is most likely due to which of the following actions?",
+    "options": {"A": "Inhibition of proteasome", "B": "Hyperstabilization of microtubules", "C": "Generation of free radicals", "D": "Cross-linking of DNA"},
+    "expected": "D"
+  },
+  {
+    "id": "medqa-test-2",
+    "domain": "health",
+    "row": 2,
+    "summary": "Original public MedQA test row 2.",
+    "question": "Two weeks after undergoing an emergency cardiac catherization with stenting for unstable angina pectoris, a 61-year-old man has decreased urinary output and malaise. He has type 2 diabetes mellitus and osteoarthritis of the hips. Prior to admission, his medications were insulin and naproxen. He was also started on aspirin, clopidogrel, and metoprolol after the coronary intervention. His temperature is 38°C (100.4°F), pulse is 93/min, and blood pressure is 125/85 mm Hg. Examination shows mottled, reticulated purplish discoloration of the feet. Laboratory studies show:\nHemoglobin count 14 g/dL\nLeukocyte count 16,400/mm3\nSegmented neutrophils 56%\nEosinophils 11%\nLymphocytes 31%\nMonocytes 2%\nPlatelet count 260,000/mm3\nErythrocyte sedimentation rate 68 mm/h\nSerum\nUrea nitrogen 25 mg/dL\nCreatinine 4.2 mg/dL\nRenal biopsy shows intravascular spindle-shaped vacuoles. Which of the following is the most likely cause of this patient's symptoms?\"",
+    "options": {"A": "Renal papillary necrosis", "B": "Cholesterol embolization", "C": "Eosinophilic granulomatosis with polyangiitis", "D": "Polyarteritis nodosa"},
+    "expected": "B"
+  },
+  {
+    "id": "medqa-test-3",
+    "domain": "health",
+    "row": 3,
+    "summary": "Original public MedQA test row 3.",
+    "question": "A 39-year-old woman is brought to the emergency department because of fevers, chills, and left lower quadrant pain. Her temperature is 39.1°C (102.3°F), pulse is 126/min, respirations are 28/min, and blood pressure is 80/50 mm Hg. There is blood oozing around the site of a peripheral intravenous line. Pelvic examination shows mucopurulent discharge from the cervical os and left adnexal tenderness. Laboratory studies show:\nPlatelet count 14,200/mm3\nFibrinogen 83 mg/mL (N = 200–430 mg/dL)\nD-dimer 965 ng/mL (N < 500 ng/mL)\nWhen phenol is applied to a sample of the patient's blood at 90°C, a phosphorylated N-acetylglucosamine dimer with 6 fatty acids attached to a polysaccharide side chain is identified. A blood culture is most likely to show which of the following?\"",
+    "options": {"A": "Coagulase-positive, gram-positive cocci forming mauve-colored colonies on methicillin-containing agar", "B": "Encapsulated, gram-negative coccobacilli forming grey-colored colonies on charcoal blood agar", "C": "Spore-forming, gram-positive bacilli forming yellow colonies on casein agar", "D": "Lactose-fermenting, gram-negative rods forming pink colonies on MacConkey agar"},
+    "expected": "D"
+  },
+  {
+    "id": "medqa-test-4",
+    "domain": "health",
+    "row": 4,
+    "summary": "Original public MedQA test row 4.",
+    "question": "A 35-year-old man comes to the physician because of itchy, watery eyes for the past week. He has also been sneezing multiple times a day during this period. He had a similar episode 1 year ago around springtime. He has iron deficiency anemia and ankylosing spondylitis. Current medications include ferrous sulfate, artificial tear drops, and indomethacin. He works as an elementary school teacher. His vital signs are within normal limits. Visual acuity is 20/20 without correction. Physical examination shows bilateral conjunctival injection with watery discharge. The pupils are 3 mm, equal, and reactive to light. Examination of the anterior chamber of the eye is unremarkable. Which of the following is the most appropriate treatment?",
+    "options": {"A": "Erythromycin ointment", "B": "Ketotifen eye drops", "C": "Warm compresses", "D": "Fluorometholone eye drops"},
+    "expected": "B"
+  },
+  {
+    "id": "medqa-test-5",
+    "domain": "health",
+    "row": 5,
+    "summary": "Original public MedQA test row 5.",
+    "question": "A 39-year-old man presents to the emergency department because of progressively worsening chest pain and nausea that started at a local bar 30 minutes prior. The pain radiates to the epigastric area. He has a 5-year history of untreated hypertension. He has smoked 1 pack of cigarettes daily for the past 5 years and started abusing cocaine 2 weeks before his emergency room visit. The patient is diaphoretic and in marked distress. What should be the first step in management?",
+    "options": {"A": "Diltiazem", "B": "Labetalol", "C": "Propranolol", "D": "Reassurance and continuous monitoring"},
+    "expected": "D"
+  },
+  {
+    "id": "medqa-test-6",
+    "domain": "health",
+    "row": 6,
+    "summary": "Original public MedQA test row 6.",
+    "question": "A 68-year-old male comes to the physician for evaluation of right flank pain. He has a history of diabetes and peripheral artery disease. His blood pressure is 160/90 mm Hg. Physical examination shows abdominal tenderness and right flank tenderness. An ultrasound shows dilation of the right ureter and renal pelvis. Which of the following is the most likely underlying cause of this patient's condition?",
+    "options": {"A": "Renal artery stenosis", "B": "Benign prostatic hyperplasia", "C": "Common iliac artery aneurysm", "D": "Urethral stricture"},
+    "expected": "C"
+  },
+  {
+    "id": "medqa-test-7",
+    "domain": "health",
+    "row": 7,
+    "summary": "Original public MedQA test row 7.",
+    "question": "A 65-year-old man is brought to the emergency department 30 minutes after the onset of acute chest pain. He has hypertension and asthma. Current medications include atorvastatin, lisinopril, and an albuterol inhaler. He appears pale and diaphoretic. His pulse is 114/min and blood pressure is 130/88 mm Hg. An ECG shows ST-segment depressions in leads II, III, and aVF. Laboratory studies show an increased serum troponin T concentration. The patient is treated for acute coronary syndrome and undergoes percutaneous transluminal coronary angioplasty. At the time of discharge, echocardiography shows a left ventricular ejection fraction of 58%. In addition to aspirin, which of the following drugs should be added to this patient's medication regimen?",
+    "options": {"A": "Nifedipine", "B": "Enoxaparin", "C": "Clopidogrel", "D": "Spironolactone"},
+    "expected": "C"
+  },
+  {
+    "id": "medqa-test-8",
+    "domain": "health",
+    "row": 8,
+    "summary": "Original public MedQA test row 8.",
+    "question": "A 37-year-old-woman presents to her primary care physician requesting a new form of birth control. She has been utilizing oral contraceptive pills (OCPs) for the past 8 years, but asks to switch to an intrauterine device (IUD). Her vital signs are: blood pressure 118/78 mm Hg, pulse 73/min and respiratory rate 16/min. She is afebrile. Physical examination is within normal limits. Which of the following past medical history statements would make copper IUD placement contraindicated in this patient?",
+    "options": {"A": "A history of stroke or venous thromboembolism", "B": "Active or recurrent pelvic inflammatory disease (PID)", "C": "Past medical history of breast cancer", "D": "Known liver neoplasm"},
+    "expected": "B"
+  },
+  {
+    "id": "medqa-test-10",
+    "domain": "health",
+    "row": 10,
+    "summary": "Original public MedQA test row 10.",
+    "question": "A 24-year-old G2P1 woman at 39 weeks’ gestation presents to the emergency department complaining of painful contractions occurring every 10 minutes for the past 2 hours, consistent with latent labor. She says she has not experienced vaginal discharge, bleeding, or fluid leakage, and is currently taking no medications. On physical examination, her blood pressure is 110/70 mm Hg, heart rate is 86/min, and temperature is 37.6°C (99.7°F). She has had little prenatal care and uses condoms inconsistently. Her sexually transmitted infections status is unknown. As part of the patient’s workup, she undergoes a series of rapid screening tests that result in the administration of zidovudine during delivery. The infant is also given zidovudine to reduce the risk of transmission. A confirmatory test is then performed in the mother to confirm the diagnosis of HIV. Which of the following is most true about the confirmatory test?",
+    "options": {"A": "It is a Southwestern blot, identifying the presence of DNA-binding proteins", "B": "It is a Northern blot, identifying the presence of RNA", "C": "It is a Northern blot, identifying the presence of DNA", "D": "It is an HIV-1/HIV2 antibody differentiation immunoassay"},
+    "expected": "D"
+  },
+  {
+    "id": "medqa-test-11",
+    "domain": "health",
+    "row": 11,
+    "summary": "Original public MedQA test row 11.",
+    "question": "A 72-year-old man comes to the physician because of a 2-month history of fatigue and worsening abdominal pain. During this period, he also has excessive night sweats and shortness of breath on exertion. Over the past 3 months, he has had a 5.6-kg (12-lb) weight loss. He had a myocardial infarction 3 years ago. He has hypertension, diabetes mellitus, and chronic bronchitis. His medications include insulin, aspirin, lisinopril, and an albuterol inhaler. He has smoked half a pack of cigarettes for the past 45 years. Vital signs are within normal limits. The spleen is palpated 6 cm below the left costal margin. Laboratory studies show:\nHemoglobin 6.4 g/dL\nMean corpuscular volume 85 μm3\nLeukocyte count 5,200/mm3\nPlatelet count 96,000/mm3\nA blood smear is shown. Bone marrow aspiration shows extensive fibrosis and a few scattered plasma cells. A JAK 2 assay is positive. Which of the following is the most appropriate next step in management?\"",
+    "options": {"A": "Cladribine", "B": "Prednisone", "C": "Imatinib", "D": "Ruxolitinib"},
+    "expected": "D"
+  },
+  {
+    "id": "medqa-test-12",
+    "domain": "health",
+    "row": 12,
+    "summary": "Original public MedQA test row 12.",
+    "question": "A 20-year-old man comes to the physician because of worsening gait unsteadiness and bilateral hearing loss for 1 month. He has had intermittent tingling sensations on both cheeks over this time period. He has no history of serious medical illness and takes no medications. Audiometry shows bilateral sensorineural hearing loss. Genetic evaluation shows a mutation of a tumor suppressor gene on chromosome 22 that encodes merlin. This patient is at increased risk for which of the following conditions?",
+    "options": {"A": "Renal cell carcinoma", "B": "Meningioma", "C": "Astrocytoma", "D": "Vascular malformations"},
+    "expected": "B"
+  },
+  {
+    "id": "aime-2024-4",
+    "domain": "math",
+    "row": 4,
+    "aime_id": 64,
+    "summary": "AIME 2024 I problem 5, public train row 4.",
+    "question": "Let $p$ be the least prime number for which there exists a positive integer $n$ such that $n^{4}+1$ is divisible by $p^{2}$. Find the least positive integer $m$ such that $m^{4}+1$ is divisible by $p^{2}$.",
+    "expected": "110",
+    "year": 2024
+  },
+  {
+    "id": "aime-2024-22",
+    "domain": "math",
+    "row": 22,
+    "aime_id": 82,
+    "summary": "AIME 2024 II problem 8, public train row 22.",
+    "question": "A list of positive integers has the following properties:\n$\\bullet$ The sum of the items in the list is $30$.\n$\\bullet$ The unique mode of the list is $9$.\n$\\bullet$ The median of the list is a positive integer that does not appear in the list itself.\nFind the sum of the squares of all the items in the list.",
+    "expected": "236",
+    "year": 2024
+  },
+  {
+    "id": "aime-2025-6",
+    "domain": "math",
+    "year": 2025,
+    "row": 6,
+    "aime_id": 6,
+    "summary": "AIME 2025 I problem 7, public test row 6.",
+    "question": "The twelve letters $A$,$B$,$C$,$D$,$E$,$F$,$G$,$H$,$I$,$J$,$K$, and $L$ are randomly grouped into six pairs of letters. The two letters in each pair are placed next to each other in alphabetical order to form six two-letter words, and then those six words are listed alphabetically. For example, a possible result is $AB$, $CJ$, $DG$, $EK$, $FL$, $HI$. The probability that the last word listed contains $G$ is $\\frac mn$, where $m$ and $n$ are relatively prime positive integers. Find $m+n$.",
+    "expected": "821"
+  },
+  {
+    "id": "aime-2025-8",
+    "domain": "math",
+    "year": 2025,
+    "row": 8,
+    "aime_id": 8,
+    "summary": "AIME 2025 I problem 9, public test row 8.",
+    "question": "The parabola with equation $y = x^2 - 4$ is rotated $60^\\circ$ counterclockwise around the origin. The unique point in the fourth quadrant where the original parabola and its image intersect has $y$-coordinate $\\frac{a - \\sqrt{b}}{c}$, where $a$, $b$, and $c$ are positive integers, and $a$ and $c$ are relatively prime. Find $a + b + c$.",
+    "expected": "62"
+  },
+  {
+    "id": "aime-2025-14",
+    "domain": "math",
+    "year": 2025,
+    "row": 14,
+    "aime_id": 14,
+    "summary": "AIME 2025 I problem 15, public test row 14.",
+    "question": "Let $N$ denote the number of ordered triples of positive integers $(a, b, c)$ such that $a, b, c \\leq 3^6$ and $a^3 + b^3 + c^3$ is a multiple of $3^7$. Find the remainder when $N$ is divided by $1000$.",
+    "expected": "735"
+  },
+  {
+    "id": "aime-2025-24",
+    "domain": "math",
+    "year": 2025,
+    "row": 24,
+    "aime_id": 24,
+    "summary": "AIME 2025 II problem 10, public test row 24.",
+    "question": "Sixteen chairs are arranged in a row. Eight people each select a chair in which to sit so that no person sits next to two other people. Let $N$ be the number of subsets of $16$ chairs that could be selected. Find the remainder when $N$ is divided by $1000$.",
+    "expected": "907"
+  },
+  {
+    "id": "aime-2025-29",
+    "domain": "math",
+    "year": 2025,
+    "row": 29,
+    "aime_id": 29,
+    "summary": "AIME 2025 II problem 15, public test row 29.",
+    "question": "Let\\[f(x)=\\frac{(x-18)(x-72)(x-98)(x-k)}{x}.\\]There exist exactly three positive real values of $k$ such that $f$ has a minimum at exactly two real values of $x$. Find the sum of these three values of $k$.",
+    "expected": "240"
+  },
+  {
+    "id": "aime-2025-11",
+    "domain": "math",
+    "year": 2025,
+    "row": 11,
+    "aime_id": 11,
+    "summary": "AIME 2025 I problem 12, public test row 11.",
+    "question": "The set of points in $3$-dimensional coordinate space that lie in the plane $x+y+z=75$ whose coordinates satisfy the inequalities\\[x-yz<y-zx<z-xy\\]forms three disjoint convex regions. Exactly one of those regions has finite area. The area of this finite region can be expressed in the form $a\\sqrt{b},$ where $a$ and $b$ are positive integers and $b$ is not divisible by the square of any prime. Find $a+b.$",
+    "expected": "510"
+  },
+  {
+    "id": "aime-2025-26",
+    "domain": "math",
+    "year": 2025,
+    "row": 26,
+    "aime_id": 26,
+    "summary": "AIME 2025 II problem 12, public test row 26.",
+    "question": "Let $A_1A_2\\dots A_{11}$ be a non-convex $11$-gon such that The area of $A_iA_1A_{i+1}$ is $1$ for each $2 \\le i \\le 10$, $\\cos(\\angle A_iA_1A_{i+1})=\\frac{12}{13}$ for each $2 \\le i \\le 10$, The perimeter of $A_1A_2\\dots A_{11}$ is $20$. If $A_1A_2+A_1A_{11}$ can be expressed as $\\frac{m\\sqrt{n}-p}{q}$ for positive integers $m,n,p,q$ with $n$ squarefree and $\\gcd(m,p,q)=1$, find $m+n+p+q$.",
+    "expected": "19"
+  },
+  {
+    "id": "mmlu-pro-9058",
+    "domain": "science",
+    "row": 8869,
+    "question_id": 9058,
+    "summary": "MMLU-Pro physics (scibench-thermo), public test row 8869.",
+    "question": "A cell is roughly spherical with a radius of $20.0 \\times 10^{-6} \\mathrm{~m}$. Calculate the work required to expand the cell surface against the surface tension of the surroundings if the radius increases by a factor of three. Assume the cell is surrounded by pure water and that $T=298.15 \\mathrm{~K}$.",
+    "options": {"A": "1.12 $10^{-9} \\mathrm{~J}$", "B": "2.23 $10^{-9} \\mathrm{~J}$", "C": "3.14 $10^{-9} \\mathrm{~J}$", "D": "5.00 $10^{-9} \\mathrm{~J}$", "E": "2.89 $10^{-9} \\mathrm{~J}$", "F": "3.72 $10^{-9} \\mathrm{~J}$", "G": "4.56 $10^{-9} \\mathrm{~J}$", "H": "1.45 $10^{-9} \\mathrm{~J}$", "I": "0.89 $10^{-9} \\mathrm{~J}$", "J": "2.50 $10^{-9} \\mathrm{~J}$"},
+    "expected": "E"
+  },
+  {
+    "id": "mmlu-pro-9060",
+    "domain": "science",
+    "row": 8871,
+    "question_id": 9060,
+    "summary": "MMLU-Pro physics (scibench-thermo), public test row 8871.",
+    "question": "A system consisting of $82.5 \\mathrm{~g}$ of liquid water at $300 . \\mathrm{K}$ is heated using an immersion heater at a constant pressure of 1.00 bar. If a current of $1.75 \\mathrm{~A}$ passes through the $25.0 \\mathrm{ohm}$ resistor for 100 .s, what is the final temperature of the water?",
+    "options": {"A": "322$\\mathrm{~K}$", "B": "335$\\mathrm{~K}$", "C": "340$\\mathrm{~K}$", "D": "310$\\mathrm{~K}$", "E": "345$\\mathrm{~K}$", "F": "330$\\mathrm{~K}$", "G": "300$\\mathrm{~K}$", "H": "325$\\mathrm{~K}$", "I": "315$\\mathrm{~K}$", "J": "350$\\mathrm{~K}$"},
+    "expected": "A"
+  },
+  {
+    "id": "mmlu-pro-3545",
+    "domain": "science",
+    "row": 3424,
+    "question_id": 3545,
+    "summary": "MMLU-Pro chemistry (scibench-matter), public test row 3424.",
+    "question": "Calculate $\\Delta_{\\mathrm{r}} G^{\\ominus}(375 \\mathrm{~K})$ for the reaction $2 \\mathrm{CO}(\\mathrm{g})+\\mathrm{O}_2(\\mathrm{~g}) \\rightarrow 2 \\mathrm{CO}_2(\\mathrm{~g})$ from the values of $\\Delta_{\\mathrm{r}} G^{\\ominus}(298 \\mathrm{~K})$ : and $\\Delta_{\\mathrm{r}} H^{\\ominus}(298 \\mathrm{~K})$, and the GibbsHelmholtz equation.",
+    "options": {"A": "-560 kJ mol^{-1}", "B": "-525 kJ mol^{-1}", "C": "-475 kJ mol^{-1}", "D": "-501$\\mathrm{~kJ} \\mathrm{~mol}^{-1}$", "E": "-600$\\mathrm{~kJ} \\mathrm{~mol}^{-1}$", "F": "-650 kJ mol^{-1}", "G": "-700 kJ mol^{-1}", "H": "-550$\\mathrm{~kJ} \\mathrm{~mol}^{-1}$", "I": "-450$\\mathrm{~kJ} \\mathrm{~mol}^{-1}$", "J": "-550.5 kJ mol^{-1}"},
+    "expected": "D"
+  },
+  {
+    "id": "mmlu-pro-2826",
+    "domain": "science",
+    "row": 2709,
+    "question_id": 2826,
+    "summary": "MMLU-Pro biology (stemez-Genetics), public test row 2709.",
+    "question": "A gene C mutates to c with a frequency of 2 × 10^-6 per generation. There are no other forces acting on these alleles and mating is random. How many generations are needed to increase the frequency of gene c from 2 percent to 3 percent?",
+    "options": {"A": "2,500 generations", "B": "6,200 generations", "C": "15,000 generations", "D": "8,764 generations", "E": "10,000 generations", "F": "20,000 generations", "G": "3,000 generations", "H": "1,000 generations", "I": "7,500 generations", "J": "5,128 generations"},
+    "expected": "J"
+  },
+  {
+    "id": "mmlu-pro-11374",
+    "domain": "science",
+    "row": 11152,
+    "question_id": 11374,
+    "summary": "MMLU-Pro engineering (stemez-Thermodynamics), public test row 11152.",
+    "question": "0.1m^3 of a ferromagnetic substance is kept at a constant temperatureof 4°K while the magnetic field is increased from0 to (4\\pi / 10) toweber/m^2. Obtain an expression for the workrequired if the substance follows the Curie equation of state. Assume C = 4\\pi × 10^9weber- °K/amp-m.",
+    "options": {"A": "(16 × 10^6)πN-m", "B": "(12 × 10^6)πN-m", "C": "(4 × 10^5)πN-m", "D": "(3 × 10^6)πN-m", "E": "(6 × 10^6)πN-m", "F": "(2 × 10^6)πN-m", "G": "(1 × 10^7)πN-m", "H": "(4 × 10^6)πN-m", "I": "(8 × 10^6)πN-m", "J": "(8 × 10^5)πN-m"},
+    "expected": "I"
+  },
+  {
+    "id": "mmlu-pro-11379",
+    "domain": "science",
+    "row": 11157,
+    "question_id": 11379,
+    "summary": "MMLU-Pro engineering (stemez-FluidMechanics), public test row 11157.",
+    "question": "A liquid of specific gravity 0.9 and viscosity 20 cp flows through the annulus formed by two concentric pipes at a rate of 10 ft/sec. If the inner diameter of the larger pipe is 2 ft and the outer diameter of the smaller pipe is 1.5 ft, what is the Reynolds number corresponding to the flow?",
+    "options": {"A": "32,000", "B": "25,000", "C": "14,000", "D": "20,890", "E": "27,000", "F": "18,500", "G": "22,300", "H": "35,000", "I": "15,000", "J": "30,000"},
+    "expected": "D"
+  },
+  {
+    "id": "mmlu-pro-11384",
+    "domain": "science",
+    "row": 11162,
+    "question_id": 11384,
+    "summary": "MMLU-Pro engineering (stemez-Electromagnetics), public test row 11162.",
+    "question": "An infinite hollow circular cylinder of dielectric of radii a and b (b > a) and dielectric constant K is set with its axis perpendicularto a uniform field of strength E. Find the field inthe hollow space.",
+    "options": {"A": "(4K) / {(K^2 + 1) - (K^2 - 1) (a/b)^2}", "B": "- [(4K) / {(K - 1)^2 - (K + 1)^2 (a/b)^2}]", "C": "(2K) / {(K + 1)^2 - (K - 1)^2 (a/b)^2}", "D": "- [(4K) / {(K + 1)^2 - (K - 1)^2 (a/b)^2}]", "E": "- [(2K) / {(K + 1) - (K - 1) (a/b)^2}]", "F": "E / {(K + 1) - (K - 1) (a/b)^2}", "G": "(E) / {(K^2 + 1) - (K^2 - 1) (a/b)^2}", "H": "(4K) / {(K + 1)^2 - (K - 1)^2 (a/b)^2}", "I": "4K / {(K - 1)^2 - (K + 1)^2 (a/b)^2}", "J": "- [E / {(K^2 - 1) - (K^2 + 1) (a/b)^2}]"},
+    "expected": "D"
+  },
+  {
+    "id": "mmlu-pro-11386",
+    "domain": "science",
+    "row": 11164,
+    "question_id": 11386,
+    "summary": "MMLU-Pro engineering (stemez-ElectricalMachines), public test row 11164.",
+    "question": "(i) A 1000 kVA, 4600 V, three-phase, wye-connected alternator has an armature resistance of 2 ohms per phase and a synchronous armature reactance, X_s, of 20 ohms per phase. Find the full-load generated voltage per phase at: (a) Unity power factor (b) A power factor of 0.75 lagging (ii) Repeat part (i) to determine the generated voltage per phase at full load with: (a) A leading load of 0.75 PF (b) A leading load of 0.4 PF.",
+    "options": {"A": "3600 V/phase, 4600 V/phase, 2200 V/phase, 1200 V/phase", "B": "3950 V/phase, 4950 V/phase, 2450 V/phase, 1450 V/phase", "C": "3845 V/phase, 4820 V/phase, 2360 V/phase, 1315 V/phase", "D": "3800 V/phase, 4800 V/phase, 2350 V/phase, 1320 V/phase", "E": "4000 V/phase, 5000 V/phase, 2500 V/phase, 1500 V/phase", "F": "3900 V/phase, 4900 V/phase, 2400 V/phase, 1400 V/phase", "G": "3700 V/phase, 4700 V/phase, 2300 V/phase, 1300 V/phase", "H": "3650 V/phase, 4650 V/phase, 2250 V/phase, 1250 V/phase", "I": "3850 V/phase, 4850 V/phase, 2380 V/phase, 1335 V/phase", "J": "3750 V/phase, 4750 V/phase, 2280 V/phase, 1285 V/phase"},
+    "expected": "C"
+  },
+  {
+    "id": "mmlu-pro-11382",
+    "domain": "science",
+    "row": 11160,
+    "question_id": 11382,
+    "summary": "MMLU-Pro engineering (stemez-ElectricalMachines), public test row 11160.",
+    "question": "A cumulative compound motor has a varying load upon it which requires a variation in armature current from 50 amp to 100 amp. If the series-field current causes the air-gap flux to change by 3 percent for each 10 amp of armature current, find the ratio of torques developed for the two values of armature current.",
+    "options": {"A": "2.26", "B": "0.66", "C": "3.95", "D": "1.00", "E": "2.89", "F": "1.75", "G": "4.12", "H": "1.15", "I": "0.87", "J": "3.40"},
+    "expected": "A"
+  }
+]

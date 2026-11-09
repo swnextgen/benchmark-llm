@@ -1,0 +1,9 @@
+config.env
+.env
+benchmark/.venv/
+benchmark/.state/
+benchmark-results/
+results/
+*.gguf
+__pycache__/
+*.pyc

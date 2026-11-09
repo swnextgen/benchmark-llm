@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$page_title</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: #0d1b2d;
+      --panel-2: #11233a;
+      --line: #213954;
+      --text: #e9f0f8;
+      --muted: #91a4ba;
+      --accent: #5eead4;
+      --good: #4ade80;
+      --bad: #fb7185;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top right, #123052 0, var(--bg) 35rem);
+      color: var(--text);
+      font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+    header { margin-bottom: 28px; }
+    h1 { margin: 6px 0; font-size: clamp(28px, 5vw, 48px); line-height: 1.08; }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
+    .subtitle, .muted { color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card, section {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
+    }
+    .card { padding: 18px; }
+    .card .label { color: var(--muted); font-size: 12px; }
+    .card .value { margin-top: 6px; font-size: 25px; font-weight: 750; }
+    .card .detail { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    section { margin-top: 18px; padding: 20px; overflow: hidden; }
+    .status {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .status.pass, .status.completed { color: var(--good); }
+    .status.fail, .status.failed, .status.infra_error { color: var(--bad); }
+    .status.timeout, .status.interrupted, .status.skipped, .status.unscored { color: var(--warn); }
+    .source-links a { display: inline-block; margin: 0 8px 4px 0; }
+    .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 28px; }
+    .details dt { color: var(--muted); font-size: 12px; }
+    .details dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .task-name { min-width: 190px; font-weight: 700; }
+    .task-summary { min-width: 300px; max-width: 470px; color: var(--muted); white-space: pre-line; }
+    code { color: #bfdbfe; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer { margin-top: 22px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 850px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .details { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      main { width: min(100% - 20px, 1180px); padding-top: 28px; }
+      .grid, .details { grid-template-columns: 1fr; }
+      section { padding: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">AI BENCHMARK REPORT</div>
+      <h1 id="model-name">Model benchmark</h1>
+      <div class="subtitle"><code id="model-id"></code> · <span id="run-status" class="status"></span></div>
+      <div class="subtitle" id="run-note"></div>
+    </header>
+
+    <div class="grid">
+      <div class="card"><div class="label">Tasks passed</div><div class="value" id="passed"></div></div>
+      <div class="card"><div class="label">Tasks failed</div><div class="value" id="failed"></div></div>
+      <div class="card"><div class="label">Timeouts</div><div class="value" id="timeouts"></div></div>
+      <div class="card"><div class="label">Run duration</div><div class="value" id="duration"></div></div>
+    </div>
+
+    <section>
+      <h2>Model performance</h2>
+      <div class="grid" id="aggregate-cards">
+        <div class="card"><div class="label">Approximate prefill</div><div class="value" id="prefill"></div></div>
+        <div class="card"><div class="label">Single-request decode</div><div class="value" id="decode"></div></div>
+        <div class="card"><div class="label">Single-request mean TTFT</div><div class="value" id="ttft"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Environment</h2>
+      <dl class="details">
+        <div><dt>API endpoint</dt><dd id="api-base"></dd></div>
+        <div><dt>Served model root (preflight)</dt><dd id="served-root"></dd></div>
+        <div><dt>Context limit</dt><dd id="context-limit"></dd></div>
+        <div><dt>Context source</dt><dd id="context-source"></dd></div>
+        <div><dt>Benchmark input limit</dt><dd id="input-limit"></dd></div>
+        <div><dt>Benchmark output limit</dt><dd id="output-limit"></dd></div>
+        <div><dt>Aggregate concurrency</dt><dd id="concurrency"></dd></div>
+        <div><dt>Benchmark architecture</dt><dd id="architecture"></dd></div>
+        <div><dt>Docker version</dt><dd id="docker-version"></dd></div>
+        <div><dt>Generated</dt><dd id="generated-at"></dd></div>
+      </dl>
+    </section>
+
+    <section>
+      <h2>Suite results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Suite</th><th>Attempted</th><th>Passed</th><th>Failed</th><th>Unscored</th><th>Timeouts</th><th>Pass rate</th><th>Mean score</th></tr></thead>
+          <tbody id="suite-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Task results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Task</th><th>What was tested</th><th>Type</th><th>Outcome</th><th>Score</th><th>Time</th><th>Source</th></tr></thead>
+          <tbody id="task-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>Standalone report generated from the benchmark result JSON.</footer>
+  </main>
+  <script id="benchmark-data" type="application/json">$benchmark_json</script>
+  <script>
+    const data = JSON.parse(document.getElementById("benchmark-data").textContent);
+    const get = (id) => document.getElementById(id);
+    const value = (input, suffix) => input === null || input === undefined ? "—" : input.toLocaleString() + (suffix || "");
+    const duration = (seconds) => {
+      if (seconds === null || seconds === undefined) return "—";
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor(seconds % 3600 / 60);
+      const rest = Math.round(seconds % 60);
+      return (hours ? hours + "h " : "") + (minutes ? minutes + "m " : "") + rest + "s";
+    };
+    const label = (text) => String(text || "unknown").replaceAll("_", " ");
+    const set = (id, content) => { get(id).textContent = content; };
+    const cell = (content, className) => {
+      const element = document.createElement("td");
+      element.textContent = content;
+      if (className) element.className = className;
+      return element;
+    };
+
+    const progress = data.progress || {};
+    const service = data.model_service || {};
+    const environment = data.environment || {};
+    set("model-name", data.model && (data.model.name || data.model.id) || "Model benchmark");
+    set("model-id", data.model && data.model.id || "—");
+    set("run-status", data.run && data.run.status || "unknown");
+    get("run-status").classList.add(data.run && data.run.status || "unknown");
+    set("run-note", data.run && data.run.status === "failed"
+      ? "This report is partial. Completed task results are preserved; unavailable performance metrics are shown as —."
+      : data.run && data.run.status === "skipped"
+        ? "Performance testing was skipped because the server could not complete a measurable request. See run.log for details."
+      : data.benchmark_mode === "quick"
+        ? "Quick test: 10 easiest tasks (4 SWE, 4 Terminal, 2 LiveBench) with fixed per-stage limits. Pass rates are not comparable with full runs."
+      : data.benchmark_mode === "vals_public_proxy"
+        ? "public_proxy — not Vals leaderboard comparable. Finance answers are closed-book (no tools) and judged against the public rubric; pass means a score of 40% or more. Links point to each exact public source."
+      : "");
+    set("passed", value(progress.passed));
+    set("failed", value(progress.failed));
+    set("timeouts", value(progress.timeouts));
+    set("duration", duration(data.run && data.run.duration_seconds));
+    set("prefill", value(service.approximate_prefill_rate_tokens_per_second ?? service.prefill_rate_tokens_per_second, " tok/s"));
+    set("decode", value(service.decode_rate_tokens_per_second, " tok/s"));
+    set("ttft", value(service.single_request_mean_time_to_first_token_seconds ?? service.median_time_to_first_token_seconds ?? service.mean_time_to_first_token_seconds, " s"));
+    const aggregates = service.aggregate_measurements || (service.aggregate_concurrency ? [{
+      concurrency: service.aggregate_concurrency,
+      generation_rate_tokens_per_second: service.aggregate_generation_rate_tokens_per_second
+    }] : []);
+    aggregates.forEach((measurement) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      const metricLabel = document.createElement("div");
+      metricLabel.className = "label";
+      metricLabel.textContent = "Aggregate C" + measurement.concurrency;
+      const metricValue = document.createElement("div");
+      metricValue.className = "value";
+      metricValue.textContent = value(measurement.generation_rate_tokens_per_second, " tok/s");
+      const metricDetail = document.createElement("div");
+      metricDetail.className = "detail";
+      const effective = measurement.effective_per_user_generation_rate_tokens_per_second ??
+        measurement.generation_rate_tokens_per_second / measurement.concurrency;
+      metricDetail.textContent = value(effective, " tok/s effective per user") +
+        (measurement.mean_time_to_first_token_seconds === null || measurement.mean_time_to_first_token_seconds === undefined
+          ? "" : " · " + value(measurement.mean_time_to_first_token_seconds, " s mean TTFT"));
+      card.append(metricLabel, metricValue, metricDetail);
+      get("aggregate-cards").appendChild(card);
+    });
+    set("api-base", environment.api_base_url || "—");
+    set("served-root", data.model && data.model.served_model_root || "—");
+    set("context-limit", value(data.model && data.model.maximum_context_tokens, " tokens"));
+    set("context-source", label(data.model && data.model.context_source));
+    set("input-limit", value(data.model && data.model.benchmark_input_limit_tokens, " tokens"));
+    set("output-limit", value(data.model && data.model.benchmark_output_limit_tokens, " tokens"));
+    set("concurrency", aggregates.length ? aggregates.map((item) => "C" + item.concurrency).join(", ") : "—");
+    set("architecture", environment.benchmark_host_architecture || "—");
+    set("docker-version", environment.docker_version || "—");
+    set("generated-at", data.generated_at || "—");
+
+    Object.entries(data.quality || {}).forEach(([name, result]) => {
+      if (!result.total) return;
+      const row = document.createElement("tr");
+      [label(name), result.attempted, result.passed, result.failed, result.unscored || 0, result.timeouts, value(result.pass_rate_percent, "%"), value(result.mean_score_percent, "%")]
+        .forEach((item) => row.appendChild(cell(item)));
+      get("suite-rows").appendChild(row);
+    });
+
+    (data.tasks || []).forEach((task) => {
+      const row = document.createElement("tr");
+      row.appendChild(cell(task.task, "task-name"));
+      row.appendChild(cell(task.summary || "—", "task-summary"));
+      row.appendChild(cell(label(task.task_type)));
+      const outcome = cell(label(task.outcome));
+      const badge = document.createElement("span");
+      badge.className = "status " + String(task.outcome || "unknown").replace(/[^a-z_]/g, "");
+      badge.textContent = label(task.outcome);
+      outcome.textContent = "";
+      outcome.appendChild(badge);
+      row.appendChild(outcome);
+      row.appendChild(cell(value(task.score_percent, "%")));
+      row.appendChild(cell(duration(task.seconds)));
+      const source = document.createElement("td");
+      source.className = "source-links";
+      const links = task.evidence_links || [{label: "Open", url: task.source_url || task.github_url}];
+      links.forEach((item) => {
+        if (!item.url || !/^https?:\/\//.test(item.url)) return;
+        const link = document.createElement("a");
+        link.href = item.url;
+        link.textContent = item.label || "Open";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        source.appendChild(link);
+      });
+      if (task.upstream_version) {
+        const version = document.createElement("div");
+        version.className = "muted";
+        version.textContent = task.upstream_version;
+        source.appendChild(version);
+      } else {
+        if (!source.childNodes.length) source.textContent = "—";
+      }
+      row.appendChild(source);
+      get("task-rows").appendChild(row);
+    });
+  </script>
+</body>
+</html>
