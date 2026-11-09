@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-benchmark.py
+edge_benchmark.py
 
 Single combined benchmark script. Everything in one file:
 
@@ -31,9 +31,9 @@ Three runner backends, chosen with --runner-mode:
      model from disk on every single subprocess call.
 
   3. openai -- uses an already-running OpenAI-compatible Chat Completions
-     endpoint. This is the default used by run.sh for Edge benchmarks.
+     endpoint. Select explicitly with --runner-mode openai.
 
-Both runner classes expose the same generate(prompt, predict) ->
+All runner classes expose the same generate(prompt, predict) ->
 dict(prompt, response, elapsed, prefill_tps, decode_tps, prompt_tokens)
 interface, so every benchmark_* function works unchanged regardless of
 which backend is active.
@@ -41,19 +41,19 @@ which backend is active.
 Usage:
 
   # Subprocess mode (original behavior, no server)
-  python3 llama_bench_full.py \\
+  python3 benchmark/edge_benchmark.py \\
       --model /path/model.gguf \\
       --binary /path/llama-completion -t 8 -c 4096
 
   # Server mode, script launches llama-server itself
-  python3 llama_bench_full.py \\
+  python3 benchmark/edge_benchmark.py \\
       --runner-mode server \\
       --model /path/model.gguf \\
       --llama-server-bin /path/llama-server \\
       -t 8 -c 4096 --ngl 99 --server-parallel 1
 
   # Server mode, against an already-running llama-server
-  python3 llama_bench_full.py \\
+  python3 benchmark/edge_benchmark.py \\
       --runner-mode server \\
       --server-url http://127.0.0.1:8080 \\
       --model /path/model.gguf
@@ -94,6 +94,9 @@ except Exception:
 DEFAULT_BINARY = "./build/bin/llama-completion"
 RESULT_DIR = "results"
 CHART_DIR = os.path.join(RESULT_DIR, "charts")
+# Set per model by benchmark_main: run_steps checkpoints here after every section so --resume can skip finished ones.
+CHECKPOINT_FILE = None
+RESUME = False
 
 # ============================================================
 # FD LIMIT
@@ -205,9 +208,13 @@ def run_command(cmd, timeout=1800):
 
 class LlamaRunner:
 
-    def __init__(self, binary, model, threads=8, ctx=32768):
-        self.binary = binary
-        self.model = model
+    def __init__(self, binary, model, threads=8, ctx=4096):
+        self.binary = str(Path(binary).expanduser().resolve())
+        self.model = str(Path(model).expanduser().resolve())
+        if not Path(self.model).is_file() or not os.access(self.model, os.R_OK):
+            raise SystemExit(f"Model file is missing or unreadable: {self.model}")
+        if not Path(self.binary).is_file() or not os.access(self.binary, os.X_OK):
+            raise SystemExit(f"llama-completion binary is missing or not executable: {self.binary}")
         self.threads = threads
         self.ctx = ctx
 
@@ -228,18 +235,19 @@ class LlamaRunner:
             "-f", prompt_file
         ]
 
-        result = run_command(cmd)
-
         try:
-            os.remove(prompt_file)
-        except Exception:
-            pass
+            result = run_command(cmd)
+        finally:
+            Path(prompt_file).unlink(missing_ok=True)
+
+        if result["returncode"] != 0:
+            raise RuntimeError(f"llama-completion failed (exit {result['returncode']}): {result['output'][-2000:]}")
 
         perf = parse_tps(result["output"])
 
         return {
             "prompt": prompt,
-            "response": extract_model_response(result["output"]),
+            "response": extract_model_response(result["stdout"]),
             "elapsed": result["elapsed"],
             "prefill_tps": perf["prefill_tps"],
             "decode_tps": perf["decode_tps"],
@@ -1882,7 +1890,7 @@ def print_model_summary(report):
         if report["logic_advanced"].get("breakdown"):
             for cat, stats in report["logic_advanced"]["breakdown"].items():
                 print(f"    {cat}: {stats['passed']}/{stats['total']} ({stats['accuracy']}%)")
-    if "coding" in report:
+    if report.get("coding"):
         print("Coding:", report["coding"]["pass_at_1"])
         if report["coding"].get("breakdown"):
             for cat, stats in report["coding"]["breakdown"].items():
@@ -2060,26 +2068,60 @@ def save_html_dashboard(reports):
 # RUN COMPLETE BENCHMARK
 # ============================================================
 
+def save_checkpoint(report, done, total):
+    tmp = CHECKPOINT_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump({"report": report, "done": done, "total": total}, f, indent=2)
+    os.replace(tmp, CHECKPOINT_FILE)
+
+def load_checkpoint():
+    with open(CHECKPOINT_FILE) as f:
+        return json.load(f)
+
+def run_steps(report, steps):
+    """Run each (report_key, fn) once, checkpointing after every step. With RESUME, steps the checkpoint finished are skipped."""
+    done = []
+    if RESUME and CHECKPOINT_FILE and os.path.exists(CHECKPOINT_FILE):
+        saved = load_checkpoint()
+        done = [name for name, _ in steps if name in saved["done"]]
+        report.update({name: saved["report"][name] for name in done})
+    if CHECKPOINT_FILE:
+        save_checkpoint(report, done, len(steps))
+    group = None
+    for name, fn in steps:
+        if name in done:
+            print(f"[RESUME] {name} already done; skipping")
+            continue
+        if group != (name == "performance"):
+            group = name == "performance"
+            print("\n" + "=" * 70 + "\n" + ("PERFORMANCE" if group else "CAPABILITY") + "\n" + "=" * 70)
+        report[name] = fn()
+        done.append(name)
+        if CHECKPOINT_FILE:
+            save_checkpoint(report, done, len(steps))
+
 def run_complete_benchmark(runner, report, contexts, benchmark_type="both",
                             skip_advanced_reasoning=False, include_basic_reasoning=False,
                             include_basic_logic=False):
+    steps = []
     if benchmark_type != "tasks":
-        print("\n" + "=" * 70 + "\nPERFORMANCE\n" + "=" * 70)
-        report["performance"] = run_performance_suite(runner, contexts)
-        report["niah"] = report["performance"]["niah"]
-
+        steps.append(("performance", lambda: run_performance_suite(runner, contexts)))
     if benchmark_type != "performance":
-        print("\n" + "=" * 70 + "\nCAPABILITY\n" + "=" * 70)
         if include_basic_reasoning:
-            report["reasoning"] = benchmark_reasoning(runner)
+            steps.append(("reasoning", lambda: benchmark_reasoning(runner)))
         if not skip_advanced_reasoning:
-            report["reasoning_advanced"] = benchmark_reasoning_advanced(runner)
+            steps.append(("reasoning_advanced", lambda: benchmark_reasoning_advanced(runner)))
         if include_basic_logic:
-            report["logic"] = benchmark_logic(runner)
-        report["logic_advanced"] = benchmark_logic_advanced(runner)
-        report["coding"] = benchmark_humaneval(runner)
-        report["agent_advanced"] = benchmark_agent_advanced(runner)
-        report["rag_advanced"] = benchmark_rag_advanced(runner)
+            steps.append(("logic", lambda: benchmark_logic(runner)))
+        steps += [
+            ("logic_advanced", lambda: benchmark_logic_advanced(runner)),
+            ("coding", lambda: benchmark_humaneval(runner)),
+            ("agent_advanced", lambda: benchmark_agent_advanced(runner)),
+            ("rag_advanced", lambda: benchmark_rag_advanced(runner)),
+        ]
+    run_steps(report, steps)
+    if report["performance"]:
+        report["niah"] = report["performance"]["niah"]
 
     report["quality_score"] = calculate_overall_score(report)
     report["performance_score"] = calculate_performance_score(report)
@@ -2091,7 +2133,7 @@ def run_complete_benchmark(runner, report, contexts, benchmark_type="both",
 # PARSE ARGS
 # ============================================================
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="LLM Benchmark Suite")
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--preflight", action="store_true")
@@ -2099,10 +2141,13 @@ def parse_args():
     parser.add_argument("--models", nargs="+")
     parser.add_argument("--display-name", help="Report name; API requests still use --model")
     parser.add_argument("-t", "--threads", type=int, default=8)
-    parser.add_argument("-c", "--ctx", type=int, default=32768)
-    parser.add_argument("--niah-contexts", default="4096,8192,16384")
+    parser.add_argument("-c", "--ctx", type=int, default=4096)
+    parser.add_argument("--niah-contexts",
+                         help="Comma-separated synthetic word counts; defaults scale with --ctx (512,1024,2048 at 4096)")
     parser.add_argument("--benchmark-type", choices=["performance", "tasks", "both"], default="both")
     parser.add_argument("--result-dir", default="results")
+    parser.add_argument("--resume", action="store_true",
+                         help="Continue an interrupted run in --result-dir: sections already in its checkpoint are skipped")
     parser.add_argument("--skip-advanced-reasoning", action="store_true",
                          help="Skip the 10-case CoT reasoning suite")
     parser.add_argument("--include-basic-reasoning", action="store_true",
@@ -2113,8 +2158,8 @@ def parse_args():
                          help="Attempt to raise the open-file descriptor limit to this value before running")
 
     # runner mode selection
-    parser.add_argument("--runner-mode", choices=["completion", "server", "openai"], default="openai",
-                         help="Use an OpenAI-compatible endpoint, llama-completion binary, or llama-server.")
+    parser.add_argument("--runner-mode", choices=["completion", "server", "openai"], default="completion",
+                         help="Use a local llama-completion binary (default), llama-server, or an OpenAI-compatible endpoint.")
     parser.add_argument("--api-base-url", default=os.getenv("OPENAI_BASE_URL"),
                          help="[openai mode] base URL ending in /v1")
     parser.add_argument("--api-key", default=os.getenv("OPENAI_API_KEY", "dummy"),
@@ -2138,7 +2183,14 @@ def parse_args():
     parser.add_argument("--extra-server-args", type=str, default="",
                          help="[server mode] extra args passed to llama-server, quoted")
 
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.threads < 1 or args.ctx < 1:
+        parser.error("--threads and --ctx must be positive")
+    if args.niah_contexts is None:
+        # Leave room for tokenization overhead, the retrieval instruction and the answer.
+        args.niah_contexts = ",".join(str(max(1, min(size, args.ctx // divisor)))
+                                     for divisor, size in ((8, 4096), (4, 8192), (2, 16384)))
+    return args
 
 def self_test():
     report = empty_report("test.gguf")
@@ -2151,10 +2203,39 @@ def self_test():
     assert stream_text({"choices": [{"delta": {"reasoning_content": "thinking"}}]}) == "thinking"
     assert OpenAIChatRunner("http://localhost:8000/v1/", "x", "m").url == "http://localhost:8000/v1/chat/completions"
     assert safe_model_name("../Display Model") == "Display-Model"
+    # Resume: a step that dies keeps the earlier steps; --resume runs only what is left.
+    global CHECKPOINT_FILE, RESUME
+    ran = []
+    def step(name):
+        return name, lambda: ran.append(name) or {"v": name}
+    def crash():
+        raise RuntimeError("cut")
+    with tempfile.TemporaryDirectory() as tmp:
+        CHECKPOINT_FILE, RESUME = os.path.join(tmp, "checkpoint-m.json"), False
+        try:
+            run_steps({}, [step("a"), ("b", crash)])
+        except RuntimeError:
+            pass
+        assert load_checkpoint()["done"] == ["a"] and load_checkpoint()["total"] == 2
+        RESUME, ran[:], resumed = True, [], {}
+        run_steps(resumed, [step("a"), step("b")])
+        assert ran == ["b"] and resumed == {"a": {"v": "a"}, "b": {"v": "b"}}
+        assert load_checkpoint()["done"] == ["a", "b"]
+    CHECKPOINT_FILE, RESUME = None, False
     print("edge benchmark self-test passed")
 
 
 def preflight(args):
+    if args.runner_mode == "completion":
+        if not args.model:
+            raise SystemExit("Local preflight requires --model and --binary")
+        result = LlamaRunner(args.binary, args.model, args.threads, args.ctx).generate(
+            "Reply with READY only.", predict=8
+        )
+        if not result["response"]:
+            raise SystemExit(f"Local preflight returned no response: {result['raw_output']}")
+        print(f"Edge local preflight passed: {args.model} using {args.binary}")
+        return
     if args.runner_mode != "openai" or not args.api_base_url or not args.model:
         raise SystemExit("OpenAI preflight requires --api-base-url and --model")
     result = OpenAIChatRunner(args.api_base_url, args.api_key, args.model, timeout=30).generate(
@@ -2169,9 +2250,10 @@ def preflight(args):
 # ============================================================
 
 def benchmark_main(args, ensure_dirs, discover_models, empty_report):
-    global RESULT_DIR, CHART_DIR
+    global RESULT_DIR, CHART_DIR, CHECKPOINT_FILE, RESUME
     RESULT_DIR = args.result_dir
     CHART_DIR = os.path.join(RESULT_DIR, "charts")
+    RESUME = args.resume
     ensure_fd_limit(args.fd_limit)
     ensure_dirs()
 
@@ -2197,6 +2279,7 @@ def benchmark_main(args, ensure_dirs, discover_models, empty_report):
 
         report = empty_report(model)
         report["model"] = args.display_name or report["model"]
+        CHECKPOINT_FILE = os.path.join(RESULT_DIR, f"checkpoint-{safe_model_name(report['model'])}.json")
         report["benchmark_mode"] = {"performance": "performance", "tasks": "capability", "both": "complete"}[args.benchmark_type]
         report["platform"] = {
             "threads": args.threads,
@@ -2294,6 +2377,8 @@ def benchmark_main(args, ensure_dirs, discover_models, empty_report):
 
     export_results(reports)
     save_html_dashboard(reports)
+    # Completion marker: run.sh stops offering this run for resume.
+    Path(RESULT_DIR, "benchmark-end-epoch").write_text(f"{int(time.time())}\n")
 
     print()
     print("=" * 80)

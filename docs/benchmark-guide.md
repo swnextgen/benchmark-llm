@@ -1,6 +1,6 @@
 # OpenAI-Compatible Model Benchmark Guide
 
-This document explains how any OpenAI-compatible model endpoint is benchmarked from initial validation through final scoring. It covers three measurements:
+This document covers the Advanced API-based workflow. For local GGUF models using `llama-completion`, see the [Edge run guide](../README.md#edge-local-files). The Advanced workflow covers three measurements:
 
 1. **Model performance:** workstation-observed prompt-processing and answer-generation speed.
 2. **Coding ability:** real repository and terminal tasks using SWE-bench Verified and Terminal-Bench 2.1.
@@ -149,7 +149,7 @@ Question IDs, release dates, prompts and answers are pinned in the repository. T
 
 | Limit | Value |
 |---|---:|
-| SWE task | 25 minutes |
+| SWE agent / official grader | 25 / 10 minutes |
 | Terminal task | 20 minutes |
 | Reasoning question | 10 minutes |
 | Minimum free disk before preflight | 75 GiB |
@@ -157,7 +157,21 @@ Question IDs, release dates, prompts and answers are pinned in the repository. T
 
 Every configured task is attempted once. The runner does not repeat completed cases and has no overall wall-clock deadline. Per-task safety limits prevent one broken case from hanging the entire run.
 
-Preflight containers use automatic removal where supported, and Harbor tasks are requested with deletion enabled. Prepared images remain cached for later runs. The runner never performs broad Docker pruning; use `./benchmark/cleanup-docker-cache.sh` when the benchmark cache is no longer needed. Setup, dataset checks and image downloads happen during preflight and are excluded from the timed benchmark.
+### Quick test
+
+`BENCHMARK_TYPE=quick` (menu option 4, Advanced only) is an approximately one-hour check of every suite plus the performance pass. Slower reasoning models can take longer. It uses the easiest tasks that run in this harness, in a 4:4:2 ratio:
+
+| Suite | Tasks | Fixed limits |
+|---|---|---:|
+| SWE-bench Verified (`<15 min fix`) | `django__django-11179`, `sympy__sympy-16886`, `pytest-dev__pytest-7982`, `pallets__flask-5014` | 10 min agent + 5 min grader |
+| Terminal-Bench 2.1 (`easy`) | `fix-git`, `prove-plus-comm`, `kv-store-grpc`, `nginx-request-logging` | 8 min |
+| LiveBench | `livebench-zebra_puzzle-26`, `livebench-spatial-88` | 7 min; 8,192 output tokens |
+
+Every task in a suite gets the same limits, so its position cannot change its score. SWE grading has a separate allowance and uses the dataset cached by preflight; grader failures are infrastructure errors, not model timeouts. Harbor retains time for its verifier inside the Terminal cap. Quick preflight needs 30 GiB free and runs the Harbor oracle on `fix-git`.
+
+Results carry `benchmark_mode: "quick"` and the HTML report says so. Because the tasks are easier and the limits shorter, quick pass rates must not be compared with full-run pass rates. Quick results made before the `kv-store-grpc` and `nginx-request-logging` selection are also not directly comparable.
+
+Preflight containers use automatic removal where supported, and Harbor tasks are requested with deletion enabled. Harbor preparation reports progress every 60 seconds and stops a stalled task preparation after 5 minutes or oracle check after 10 minutes. Prepared images remain cached for later runs. The runner never performs broad Docker pruning; use `./benchmark/cleanup-docker-cache.sh` when the benchmark cache is no longer needed. Setup, dataset checks and image downloads happen during preflight and are excluded from the timed benchmark.
 
 ## 5. Workstation prerequisites
 
@@ -236,7 +250,7 @@ cd ai-benchmark
 ./benchmark/run.sh
 ```
 
-The runner asks for the API base URL, model ID and benchmark type. Choose `1` for performance, `2` for tasks or `3` for both. Task counts default to 10 SWE, 10 Terminal and 5 LiveBench tasks.
+The runner asks for the API base URL, model ID and benchmark type. Choose `1` for performance, `2` for tasks, `3` for both or `4` for the [quick test](#quick-test). Task counts default to 10 SWE, 10 Terminal and 5 LiveBench tasks; the quick test uses its own fixed 4/4/2 set.
 
 The lines below are task-start announcements, not errors. The displayed value is the maximum allowed time:
 
@@ -245,6 +259,16 @@ The lines below are task-start announcements, not errors. The displayed value is
 [2026-09-01T08:01:00Z] [RUNNING 01/25] [SWE] astropy__astropy-12907 | elapsed=60s | log=primary/swe/astropy__astropy-12907/agent.log
 [2026-09-01T08:02:22Z] [PASS 01/25] [SWE] astropy__astropy-12907 | duration=142s | exit=0/0 | done=1 pass=1 fail=0 timeout=0 error=0
 ```
+
+Diagnostic lines explain why a task ended the way it did:
+
+| Line | Meaning |
+|---|---|
+| `[DETAIL] [SWE] … agent_status=…` | mini-SWE-agent exit status, such as `Submitted`, `RepeatedFormatError` (the model kept breaking the action format) or `LimitsExceeded` |
+| `[DETAIL] [REASONING] …` | Outcome, score, `finish_reason` and token usage; `finish_reason: "length"` means the answer hit the output token limit |
+| `[DETAIL] … last lines of <log>` | The last 5 log lines, printed after every timeout or infrastructure error |
+| `[SUMMARY] [SWE] pass=…` | Per-suite totals after each suite and again at the end |
+| `[QUICK] …` | Quick-test plan and fixed per-stage limits |
 
 ## 9. Monitor a running benchmark
 
@@ -277,7 +301,23 @@ SWE and Terminal tasks can take several minutes because each one includes model 
 
 Normally, allow the runner to finish all selected cases. The model result JSON is refreshed after every task, so an interrupted run still has its completed outcomes and an `interrupted` status.
 
-Interrupted runs keep their artifacts. Every invocation starts a new result directory and runs the selected cases from the beginning.
+Interrupted runs keep their artifacts and can be continued. When you start `./benchmark/run.sh` in a terminal and unfinished runs exist, it lists them first:
+
+```text
+Unfinished benchmark runs:
+  1) 20261022T064459Z  Example Model  advanced/vals-public  23/60 tasks done, 37 pending (retrying 1 after infra errors)  last activity 2026-10-22 12:20
+Resume which run? [1-1, or N to start a new benchmark] (N):
+```
+
+Enter a number to continue that run, or `N` (the default) to start a new result directory. Resuming reuses the same run directory and the saved settings (profile, benchmark type, task counts, endpoint, model, reasoning effort and token limits), so nothing is asked again; the API key still comes from the environment. Preflight runs again.
+
+- Finished tasks (pass, fail, unscored, timeout) are kept and logged as `[SKIP n/N]`.
+- Tasks that ended in `infra_error`, and a task that was cut mid-run, run again; their old output is moved to `<task>.<epoch>.prev` and the old error rows to `task-results.retried.tsv`.
+- Performance measurements are saved in `perf/` after each step; only missing steps run again.
+- Edge runs resume per section (performance, reasoning, logic, coding, agent, RAG) from `checkpoint-<model>.json`; a section that was cut restarts from its beginning.
+- The reported duration counts active time only; each Vals public session gets the full time budget.
+
+Non-interactive runs (no terminal) never resume. Runs created before this feature have no `resume.env` and are not offered.
 
 The runner preserves downloaded benchmark images. Remove those cached images explicitly only when disk space is needed:
 
@@ -299,6 +339,10 @@ benchmark-results/<UTC timestamp>/
 ├── primary/                   First SWE, Terminal and reasoning attempts
 │   └── reasoning/             Answers, usage and objective scores
 ├── task-results.tsv           Per-task duration and outcome
+├── task-results.retried.tsv   Infra-error rows replaced by a resumed attempt
+├── perf/                      Saved performance measurements (reused on resume)
+├── checkpoint-<model>.json    Edge runs: finished sections (reused on resume)
+├── resume.env                 Saved settings for resuming (finished runs are not offered)
 ├── run.log                    Main runner output
 ├── <model-name>-result.json   Live and final machine-readable result
 └── <model-name>-result.html   Standalone human-readable report

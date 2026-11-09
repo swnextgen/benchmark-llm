@@ -55,7 +55,8 @@
     }
     .status.pass, .status.completed { color: var(--good); }
     .status.fail, .status.failed, .status.infra_error { color: var(--bad); }
-    .status.timeout, .status.interrupted, .status.skipped { color: var(--warn); }
+    .status.timeout, .status.interrupted, .status.skipped, .status.unscored { color: var(--warn); }
+    .source-links a { display: inline-block; margin: 0 8px 4px 0; }
     .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 28px; }
     .details dt { color: var(--muted); font-size: 12px; }
     .details dd { margin: 3px 0 0; overflow-wrap: anywhere; }
@@ -126,7 +127,7 @@
       <h2>Suite results</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Suite</th><th>Attempted</th><th>Passed</th><th>Failed</th><th>Timeouts</th><th>Pass rate</th></tr></thead>
+          <thead><tr><th>Suite</th><th>Attempted</th><th>Passed</th><th>Failed</th><th>Unscored</th><th>Timeouts</th><th>Pass rate</th><th>Mean score</th></tr></thead>
           <tbody id="suite-rows"></tbody>
         </table>
       </div>
@@ -176,6 +177,10 @@
       ? "This report is partial. Completed task results are preserved; unavailable performance metrics are shown as —."
       : data.run && data.run.status === "skipped"
         ? "Performance testing was skipped because the server could not complete a measurable request. See run.log for details."
+      : data.benchmark_mode === "quick"
+        ? "Quick test: 10 easiest tasks (4 SWE, 4 Terminal, 2 LiveBench) with fixed per-stage limits. Pass rates are not comparable with full runs."
+      : data.benchmark_mode === "vals_public_proxy"
+        ? "public_proxy — not Vals leaderboard comparable. Finance answers are closed-book (no tools) and judged against the public rubric; pass means a score of 40% or more. Links point to each exact public source."
       : "");
     set("passed", value(progress.passed));
     set("failed", value(progress.failed));
@@ -219,8 +224,9 @@
     set("generated-at", data.generated_at || "—");
 
     Object.entries(data.quality || {}).forEach(([name, result]) => {
+      if (!result.total) return;
       const row = document.createElement("tr");
-      [label(name), result.attempted, result.passed, result.failed, result.timeouts, value(result.pass_rate_percent, "%")]
+      [label(name), result.attempted, result.passed, result.failed, result.unscored || 0, result.timeouts, value(result.pass_rate_percent, "%"), value(result.mean_score_percent, "%")]
         .forEach((item) => row.appendChild(cell(item)));
       get("suite-rows").appendChild(row);
     });
@@ -240,16 +246,24 @@
       row.appendChild(cell(value(task.score_percent, "%")));
       row.appendChild(cell(duration(task.seconds)));
       const source = document.createElement("td");
-      const url = task.source_url || task.github_url;
-      if (url && /^https?:\/\//.test(url)) {
+      source.className = "source-links";
+      const links = task.evidence_links || [{label: "Open", url: task.source_url || task.github_url}];
+      links.forEach((item) => {
+        if (!item.url || !/^https?:\/\//.test(item.url)) return;
         const link = document.createElement("a");
-        link.href = url;
-        link.textContent = "Open";
+        link.href = item.url;
+        link.textContent = item.label || "Open";
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         source.appendChild(link);
+      });
+      if (task.upstream_version) {
+        const version = document.createElement("div");
+        version.className = "muted";
+        version.textContent = task.upstream_version;
+        source.appendChild(version);
       } else {
-        source.textContent = "—";
+        if (!source.childNodes.length) source.textContent = "—";
       }
       row.appendChild(source);
       get("task-rows").appendChild(row);

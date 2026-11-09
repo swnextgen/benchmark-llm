@@ -7,7 +7,7 @@ STATE="$ROOT/benchmark/.state"
 
 mapfile -t swe_images < <(
   docker image ls --format '{{.Repository}}:{{.Tag}}' |
-    awk '/^(docker\.io\/)?swebench\/sweb\.eval\./ { print }'
+    awk '/^((docker\.io\/)?swebench\/sweb\.eval\.|sweb\.(base|env|eval)\.)/ { print }'
 )
 if (( ${#swe_images[@]} )); then
   docker image rm -f "${swe_images[@]}"

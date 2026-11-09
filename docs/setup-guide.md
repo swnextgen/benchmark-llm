@@ -1,6 +1,6 @@
 # AI Benchmark — Setup and Usage Guide
 
-This guide explains how to install, configure, run and review `ai-benchmark` on a new machine.
+This guide covers the Advanced API-based workflow. For local Edge benchmarking, select Edge in `benchmark/run.sh` and provide the GGUF model path and `llama-completion` path; see the [compact Edge run guide](../README.md#edge-local-files). Edge defaults to 8 threads / 4096 context and needs no API server or Docker.
 
 ## 1. Overview
 
@@ -280,6 +280,15 @@ LiveBench task count: 1
 
 This verifies API access, agent execution, official grading and report generation.
 
+### Quick test run
+
+Select benchmark type `4` (or set `BENCHMARK_TYPE=quick`) to run 4 SWE, 4 Terminal and 2 LiveBench easiest tasks followed by the performance pass, in approximately one hour. Slower models can take longer. Task selection and time limits are fixed; see [Quick test](benchmark-guide.md#quick-test). Quick results are labelled `benchmark_mode: "quick"` and are not comparable with full runs.
+
+```bash
+BENCHMARK_TYPE=quick ./benchmark/run.sh --preflight
+BENCHMARK_TYPE=quick ./benchmark/run.sh
+```
+
 ### Complete task run
 
 Run the same command, select `tasks`, then select 10 SWE, 10 Terminal and 5 LiveBench tasks.
@@ -481,6 +490,8 @@ Remove only the benchmark cache when no longer needed:
 ```bash
 ./benchmark/cleanup-docker-cache.sh
 ```
+
+This removes the pulled `swebench/sweb.eval.*` images, any locally built `sweb.base|env|eval.*` images and the Harbor task cache. Quick and full runs use different SWE images, so running both adds about 12 GB of quick-test images; clean up first if the 75 GiB full-run preflight check fails.
 
 ## 16. Troubleshooting
 

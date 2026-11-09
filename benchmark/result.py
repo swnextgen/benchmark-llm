@@ -16,8 +16,15 @@ SUITES = {
     "swe": "swe_bench_verified",
     "terminal": "terminal_bench_2_1",
     "reasoning": "livebench_reasoning_subset",
+    "legal": "legalbench_public_proxy",
+    "finance": "finance_agent_v2_public_proxy",
+    "health": "medqa_public_proxy",
+    "math": "aime_public_proxy",
+    "science": "mmlu_pro_public_proxy",
 }
-LIMITS = {"swe_bench_verified": 1500, "terminal_bench_2_1": 1200, "livebench_reasoning_subset": 600}
+PUBLIC_KINDS = {"legal", "finance", "health", "math", "science"}
+MODES = {"performance": "performance", "tasks": "capability", "both": "complete", "quick": "quick",
+         "vals-public": "vals_public_proxy"}
 
 
 def read_rows(path, delimiter="\t"):
@@ -52,12 +59,33 @@ def task_outcome(kind, root):
                 for value, trials in evaluation.get("reward_stats", {}).get("reward", {}).items() if trials
             ]
             return "pass" if rewards and max(rewards) >= 1 else "fail" if rewards else "infra_error"
-        if kind == "reasoning":
+        if kind == "reasoning" or kind in PUBLIC_KINDS:
             outcome = json.loads((root / "result.json").read_text()).get("outcome")
-            return outcome if outcome in {"pass", "fail", "timeout", "infra_error"} else "infra_error"
+            allowed = {"pass", "fail", "timeout", "infra_error"}
+            if kind == "finance":
+                allowed.add("unscored")
+            return outcome if outcome in allowed else "infra_error"
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         pass
     return "infra_error"
+
+
+def select_tasks(template_tasks, selection_rows):
+    """Template entries for the run's selected-tasks.tsv rows, in run order, with the run's per-task cap."""
+    by_key = {(task["suite"], task["task"]): task for task in template_tasks}
+    missing = [(row["suite"], row["task"]) for row in selection_rows if (SUITES.get(row["suite"]), row["task"]) not in by_key]
+    if missing:
+        raise SystemExit(f"Result template is missing benchmark tasks: {missing}")
+    return [
+        dict(by_key[(SUITES[row["suite"]], row["task"])], timeout_seconds=int(row["timeout_seconds"]))
+        for row in selection_rows
+    ]
+
+
+def merge_public_manifest(template_tasks, manifest):
+    overrides = {(item["suite"], item["task"]): item for item in manifest.get("task_overrides", [])}
+    return [dict(task, **overrides.get((task["suite"], task["task"]), {}))
+            for task in list(template_tasks) + manifest.get("tasks", [])]
 
 
 def served_model_root(path, model_id):
@@ -126,6 +154,54 @@ def self_test():
         models = root / "models.json"
         models.write_text(json.dumps({"data": [{"id": "alias", "root": "/models/DeepSeek"}]}))
         assert served_model_root(models, "alias") == "/models/DeepSeek"
+        public = root / "result.json"
+        public.write_text(json.dumps({"outcome": "unscored", "score": None}))
+        assert task_outcome("finance", root) == "unscored"
+        assert task_outcome("math", root) == "infra_error" and task_outcome("science", root) == "infra_error"
+        public.write_text(json.dumps({"outcome": "pass", "score": 1.0}))
+        assert task_outcome("math", root) == "pass" and task_outcome("science", root) == "pass"
+        public.write_text(json.dumps({"outcome": "unscored", "score": None}))
+        task_dir = root / "primary" / "finance" / "finance-public-1"
+        task_dir.mkdir(parents=True)
+        (task_dir / "result.json").write_text(json.dumps({"outcome": "unscored", "score": None}))
+        source = "https://github.com/vals-ai/finance-agent-v2/blob/revision/data/public.txt#L1"
+        built = build_tasks(root, [{
+            "suite": "finance_agent_v2_public_proxy", "task": "finance-public-1",
+            "timeout_seconds": 180, "evidence_links": [{"label": "Public question", "url": source}],
+        }], [{
+            "phase": "primary", "attempt": "1", "suite": "finance", "task": "finance-public-1",
+            "start_utc": "2026-01-01T00:00:00Z", "end_utc": "2026-01-01T00:00:01Z",
+            "duration_seconds": "1", "exit_code": "0", "outcome": "unscored",
+        }], None)
+        assert built[0]["outcome"] == "unscored" and built[0]["score_percent"] is None
+        assert built[0]["evidence_links"][0]["url"] == source
+    template = [
+        {"suite": "swe_bench_verified", "task": "a", "timeout_seconds": 1500},
+        {"suite": "terminal_bench_2_1", "task": "b", "timeout_seconds": 1200},
+    ]
+    selected = select_tasks(template, [
+        {"suite": "terminal", "task": "b", "timeout_seconds": "480"},
+        {"suite": "swe", "task": "a", "timeout_seconds": "600"},
+    ])
+    assert [(task["task"], task["timeout_seconds"]) for task in selected] == [("b", 480), ("a", 600)]
+    assert template[0]["timeout_seconds"] == 1500
+    merged = merge_public_manifest(template, {
+        "tasks": [{"suite": "legalbench_public_proxy", "task": "legal-1", "timeout_seconds": 0}],
+        "task_overrides": [{"suite": "terminal_bench_2_1", "task": "b", "comparability": "public_proxy"}],
+    })
+    assert len(merged) == 3 and merged[1]["comparability"] == "public_proxy"
+    finance_quality = quality([{"suite": "finance_agent_v2_public_proxy", "outcome": "unscored"}],
+                              "finance_agent_v2_public_proxy")
+    assert finance_quality["unscored"] == 1 and finance_quality["pass_rate_percent"] is None
+    partial = quality([{"suite": "finance_agent_v2_public_proxy", "outcome": "fail", "score_percent": 40.0},
+                       {"suite": "finance_agent_v2_public_proxy", "outcome": "fail", "score_percent": 0.0}],
+                      "finance_agent_v2_public_proxy")
+    assert partial["pass_rate_percent"] == 0.0 and partial["mean_score_percent"] == 20.0
+    try:
+        select_tasks(template, [{"suite": "swe", "task": "unknown", "timeout_seconds": "1"}])
+        raise AssertionError("unknown task accepted")
+    except SystemExit:
+        pass
     print("result self-test passed")
 
 
@@ -199,6 +275,15 @@ def reasoning_score(root, row):
         return None
 
 
+def public_score(root, row):
+    path = root / row["phase"] / row["suite"] / row["task"] / "result.json"
+    try:
+        score = json.loads(path.read_text()).get("score")
+        return round(float(score) * 100, 1) if score is not None else None
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def build_tasks(root, template_tasks, rows, active):
     completed = {(SUITES[row["suite"]], row["task"]): row for row in rows}
     tasks = []
@@ -212,10 +297,11 @@ def build_tasks(root, template_tasks, rows, active):
             "started_at": row["start_utc"] if row else active.get("start_utc") if is_active else None,
             "ended_at": row["end_utc"] if row else None,
             "seconds": int(row["duration_seconds"]) if row else None,
-            "timeout_seconds": int(active["timeout_seconds"]) if is_active else LIMITS[task["suite"]],
+            "timeout_seconds": int(active["timeout_seconds"]) if is_active else task["timeout_seconds"],
             "exit_code": row["exit_code"] if row else None,
             "outcome": row["outcome"] if row else "running" if is_active else "pending",
             "score_percent": reasoning_score(root, row) if row and row["suite"] == "reasoning"
+            else public_score(root, row) if row and row["suite"] in PUBLIC_KINDS
             else 100.0 if row and row["outcome"] == "pass"
             else 0.0 if row and row["outcome"] == "fail" else None,
             "failure_category": "model_failure" if row and row["outcome"] == "fail"
@@ -230,19 +316,21 @@ def build_tasks(root, template_tasks, rows, active):
 def quality(tasks, suite):
     selected = [task for task in tasks if task["suite"] == suite]
     attempted = [task for task in selected if task["outcome"] not in {"pending", "running"}]
+    scored = [task for task in attempted if task["outcome"] != "unscored"]
     passed = sum(task["outcome"] == "pass" for task in attempted)
     result = {
         "passed": passed,
         "failed": sum(task["outcome"] == "fail" for task in attempted),
         "timeouts": sum(task["outcome"] == "timeout" for task in attempted),
         "infrastructure_errors": sum(task["outcome"] == "infra_error" for task in attempted),
+        "unscored": sum(task["outcome"] == "unscored" for task in attempted),
         "attempted": len(attempted),
         "total": len(selected),
         "completion_percent": round(100 * len(attempted) / len(selected), 1) if selected else None,
-        "pass_rate_percent": round(100 * passed / len(attempted), 1) if attempted else None,
+        "pass_rate_percent": round(100 * passed / len(scored), 1) if scored else None,
     }
-    if suite == "livebench_reasoning_subset":
-        scores = [task["score_percent"] for task in attempted if task["score_percent"] is not None]
+    if suite in {"livebench_reasoning_subset", "finance_agent_v2_public_proxy"}:
+        scores = [task["score_percent"] for task in attempted if task.get("score_percent") is not None]
         result["mean_score_percent"] = round(sum(scores) / len(scores), 1) if scores else None
     return result
 
@@ -257,7 +345,7 @@ def main():
     parser.add_argument("--template", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--status", choices=("running", "completed", "failed", "interrupted", "skipped"), required=True)
-    parser.add_argument("--benchmark-mode", choices=("performance", "tasks", "both"), default="both")
+    parser.add_argument("--benchmark-mode", choices=tuple(MODES), default="both")
     parser.add_argument("--model-id", required=True)
     parser.add_argument("--model-name", required=True)
     parser.add_argument("--api-base-url", required=True)
@@ -266,26 +354,20 @@ def main():
     parser.add_argument("--benchmark-input-limit-tokens", type=int, required=True)
     parser.add_argument("--benchmark-output-limit-tokens", type=int, required=True)
     parser.add_argument("--context-source", choices=("api_models", "configured", "fallback"), required=True)
-    parser.add_argument("--swe-count", type=int, default=10)
-    parser.add_argument("--terminal-count", type=int, default=10)
-    parser.add_argument("--reasoning-count", type=int, default=5)
     parser.add_argument("--prefill-measurement", default="")
     parser.add_argument("--decode-measurement", default="")
     parser.add_argument("--aggregate-measurement", action="append", default=[])
     args = parser.parse_args()
-    if not (0 <= args.swe_count <= 10 and 0 <= args.terminal_count <= 10 and 0 <= args.reasoning_count <= 5):
-        parser.error("task counts must be within SWE 0-10, Terminal 0-10 and LiveBench 0-5")
 
     root = args.run_dir
     template = json.loads(args.template.read_text())
+    public_manifest_path = root / "preflight" / "vals-public-manifest.json"
+    public_manifest = json.loads(public_manifest_path.read_text()) if public_manifest_path.exists() else {}
+    template_tasks = merge_public_manifest(template["tasks"], public_manifest)
     rows = read_rows(root / "task-results.tsv")
     active_rows = read_rows(root / "active-task.tsv")
     active = active_rows[-1] if active_rows else None
-    limits = {"swe_bench_verified": args.swe_count, "terminal_bench_2_1": args.terminal_count, "livebench_reasoning_subset": args.reasoning_count}
-    selected_tasks = [
-        task for suite, count in limits.items()
-        for task in [item for item in template["tasks"] if item["suite"] == suite][:count]
-    ]
+    selected_tasks = select_tasks(template_tasks, read_rows(root / "selected-tasks.tsv"))
     known = {(task["suite"], task["task"]) for task in selected_tasks}
     unknown = [(row.get("suite"), row.get("task")) for row in rows if (SUITES.get(row.get("suite")), row.get("task")) not in known]
     if unknown:
@@ -318,7 +400,7 @@ def main():
         "outcome": "running",
     }
     outcome_counts = {name: sum(row["outcome"] == value for row in rows) for name, value in {
-        "passed": "pass", "failed": "fail", "timeouts": "timeout", "infrastructure_errors": "infra_error"
+        "passed": "pass", "failed": "fail", "unscored": "unscored", "timeouts": "timeout", "infrastructure_errors": "infra_error"
     }.items()}
     docker_info = (root / "preflight" / "docker.txt").read_text().split() if (root / "preflight" / "docker.txt").exists() else []
     environment = {
@@ -332,7 +414,9 @@ def main():
     }
     result = {
         "benchmark_profile": "advanced",
-        "benchmark_mode": {"performance": "performance", "tasks": "capability", "both": "complete"}[args.benchmark_mode],
+        "benchmark_mode": MODES[args.benchmark_mode],
+        "comparability": public_manifest.get("comparability"),
+        "methodology_url": public_manifest.get("methodology_url"),
         "schema_version": template.get("schema_version", "1.0.0"),
         "generated_at": iso(now),
         "run": {
@@ -350,9 +434,7 @@ def main():
             **outcome_counts,
         },
         "selection": {
-            "swe_bench_verified": args.swe_count,
-            "terminal_bench_2_1": args.terminal_count,
-            "livebench_reasoning_subset": args.reasoning_count,
+            **{suite: sum(task["suite"] == suite for task in tasks) for suite in SUITES.values()},
             "total": len(tasks),
         },
         "model": model,
@@ -361,6 +443,11 @@ def main():
             "swe_bench_verified": quality(tasks, "swe_bench_verified"),
             "terminal_bench_2_1": quality(tasks, "terminal_bench_2_1"),
             "reasoning": quality(tasks, "livebench_reasoning_subset"),
+            "legalbench_public_proxy": quality(tasks, "legalbench_public_proxy"),
+            "finance_agent_v2_public_proxy": quality(tasks, "finance_agent_v2_public_proxy"),
+            "medqa_public_proxy": quality(tasks, "medqa_public_proxy"),
+            "aime_public_proxy": quality(tasks, "aime_public_proxy"),
+            "mmlu_pro_public_proxy": quality(tasks, "mmlu_pro_public_proxy"),
         },
         "model_service": service_metrics(root, rows, args.prefill_measurement, args.decode_measurement, args.aggregate_measurement),
         "hardware": {
@@ -369,7 +456,8 @@ def main():
             "maximum_vram_usage_gib": None,
             "maximum_swap_usage_gib": None,
         },
-        "benchmark_sources": [] if args.benchmark_mode == "performance" else template.get("benchmark_sources", []),
+        "benchmark_sources": [] if args.benchmark_mode == "performance" else
+        (public_manifest.get("benchmark_sources", []) if args.benchmark_mode == "vals-public" else template.get("benchmark_sources", [])),
         "tasks": tasks,
         "artifacts": {
             "result_directory": str(pathlib.Path("benchmark-results") / root.name),
